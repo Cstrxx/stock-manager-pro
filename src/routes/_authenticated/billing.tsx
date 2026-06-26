@@ -12,11 +12,12 @@ export const Route = createFileRoute("/_authenticated/billing")({
   component: BillingPage,
 });
 
-const PLANS = [
+type Plan = { id: string; name: string; price: string; desc: string; features: string[]; highlight?: boolean };
+const PLANS: Plan[] = [
   { id: "free", name: "Grátis", price: "R$ 0", desc: "Até 50 produtos cadastrados.", features: ["Dashboard", "Movimentações ilimitadas", "1 usuário"] },
   { id: "pro", name: "Profissional", price: "R$ 79", desc: "Para empresas em crescimento.", features: ["Produtos ilimitados", "Relatórios avançados", "Alertas por e-mail", "Até 5 usuários"], highlight: true },
   { id: "business", name: "Business", price: "R$ 199", desc: "Múltiplas unidades.", features: ["Tudo do Profissional", "Multiusuário ilimitado", "Importação de NF (em breve)", "Suporte prioritário"] },
-] as const;
+];
 
 function BillingPage() {
   const { data: company } = useQuery({
