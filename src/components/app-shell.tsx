@@ -1,0 +1,113 @@
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
+
+const nav = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/products", label: "Produtos", icon: Package },
+  { to: "/movements", label: "Movimentações", icon: ArrowLeftRight },
+  { to: "/alerts", label: "Alertas", icon: BellRing },
+  { to: "/reports", label: "Relatórios", icon: BarChart3 },
+  { to: "/billing", label: "Plano", icon: CreditCard },
+] as const;
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const qc = useQueryClient();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const { data: company } = useQuery({
+    queryKey: ["company"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("name, plan").maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase.from("profiles").select("full_name, email").eq("id", u.user.id).maybeSingle();
+      return data;
+    },
+  });
+
+  async function signOut() {
+    await qc.cancelQueries();
+    qc.clear();
+    await supabase.auth.signOut();
+    router.navigate({ to: "/auth", replace: true });
+  }
+
+  return (
+    <div className="min-h-screen flex bg-background">
+      <aside className="hidden md:flex w-64 flex-col bg-sidebar border-r border-sidebar-border">
+        <div className="px-5 py-5 flex items-center gap-2">
+          <div className="size-8 rounded-md grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
+            <Boxes className="size-4 text-primary-foreground" />
+          </div>
+          <div>
+            <div className="font-semibold tracking-tight leading-none">Estoq</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{company?.name ?? "—"}</div>
+          </div>
+        </div>
+        <nav className="px-3 flex-1 space-y-1">
+          {nav.map(({ to, label, icon: Icon }) => {
+            const active = pathname === to || pathname.startsWith(to + "/");
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                }`}
+              >
+                <Icon className="size-4" /> {label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-3 border-t border-sidebar-border">
+          <div className="px-2 py-2 mb-2">
+            <div className="text-sm font-medium truncate">{profile?.full_name ?? "Usuário"}</div>
+            <div className="text-xs text-muted-foreground truncate">{profile?.email}</div>
+          </div>
+          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
+            <LogOut className="size-4" /> Sair
+          </Button>
+        </div>
+      </aside>
+      <main className="flex-1 min-w-0 flex flex-col">
+        <div className="md:hidden border-b border-border px-4 py-3 flex items-center justify-between bg-sidebar">
+          <div className="flex items-center gap-2">
+            <div className="size-7 rounded grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
+              <Boxes className="size-4 text-primary-foreground" />
+            </div>
+            <span className="font-semibold">Estoq</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+        </div>
+        <div className="md:hidden border-b border-border bg-sidebar overflow-x-auto">
+          <div className="flex gap-1 px-2 py-2">
+            {nav.map(({ to, label, icon: Icon }) => {
+              const active = pathname === to;
+              return (
+                <Link key={to} to={to} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs whitespace-nowrap ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground"}`}>
+                  <Icon className="size-3.5" /> {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">{children}</div>
+      </main>
+    </div>
+  );
+}
