@@ -4,84 +4,105 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { daysLeft, type Company } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/billing")({
   ssr: false,
   component: BillingPage,
 });
 
-type Plan = { id: string; name: string; price: string; desc: string; features: string[]; highlight?: boolean };
-const PLANS: Plan[] = [
-  { id: "free", name: "Grátis", price: "R$ 0", desc: "Até 50 produtos cadastrados.", features: ["Dashboard", "Movimentações ilimitadas", "1 usuário"] },
-  { id: "pro", name: "Profissional", price: "R$ 79", desc: "Para empresas em crescimento.", features: ["Produtos ilimitados", "Relatórios avançados", "Alertas por e-mail", "Até 5 usuários"], highlight: true },
-  { id: "business", name: "Business", price: "R$ 199", desc: "Múltiplas unidades.", features: ["Tudo do Profissional", "Multiusuário ilimitado", "Importação de NF (em breve)", "Suporte prioritário"] },
+const FEATURES = [
+  "Cadastro ilimitado de produtos",
+  "Entradas e saídas ilimitadas",
+  "Controle de clientes nas vendas",
+  "Relatórios completos por período",
+  "Alertas de estoque baixo e esgotado",
+  "Anexo de notas fiscais aos produtos",
+  "Multiusuário por empresa",
+  "Histórico detalhado de movimentações",
+  "Suporte por e-mail",
 ];
 
 function BillingPage() {
   const { data: company } = useQuery({
     queryKey: ["company"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("name, plan").maybeSingle();
-      return data;
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name, plan, trial_ends_at, subscription_status")
+        .maybeSingle();
+      return data as Company | null;
     },
   });
 
-  const currentPlan = company?.plan ?? "free";
+  const trialing = company?.subscription_status === "trialing";
+  const days = company ? daysLeft(company.trial_ends_at) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Plano e assinatura</h1>
-        <p className="text-sm text-muted-foreground">Escolha o plano que melhor atende sua empresa.</p>
+        <p className="text-sm text-muted-foreground">Um único plano com tudo liberado.</p>
       </header>
 
-      <Card>
-        <CardContent className="p-5 flex items-center justify-between">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Plano atual</div>
-            <div className="text-lg font-semibold mt-1">{PLANS.find(p => p.id === currentPlan)?.name ?? currentPlan}</div>
+      {trialing && (
+        <Card className="border-primary/30">
+          <CardContent className="p-5 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-md grid place-items-center bg-primary/15 text-primary">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <div className="font-medium">Você está no período de teste</div>
+                <div className="text-sm text-muted-foreground">
+                  {days > 0 ? `Restam ${days} dia${days === 1 ? "" : "s"} de uso gratuito.` : "Seu período de teste expira hoje."}
+                </div>
+              </div>
+            </div>
+            <Badge className="bg-primary/15 text-primary border-primary/20">30 dias grátis</Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="border-primary/40" style={{ boxShadow: "var(--shadow-glow)" }}>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="text-xl">Plano Completo</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Todas as ferramentas, sem limites.</p>
+            </div>
+            <Badge className="bg-primary/15 text-primary border-primary/20">Plano único</Badge>
           </div>
-          <Badge variant="outline">Ativo</Badge>
+          <div className="pt-4 flex items-end gap-2">
+            <span className="text-4xl font-semibold tracking-tight">R$ 79,99</span>
+            <span className="text-sm text-muted-foreground pb-1.5">/mês</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Cobrado mensalmente após o período de 30 dias gratuitos. Cancele quando quiser.</p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            {FEATURES.map((f) => (
+              <li key={f} className="flex items-start gap-2">
+                <Check className="size-4 text-primary mt-0.5 shrink-0" /> {f}
+              </li>
+            ))}
+          </ul>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => toast.info("Cobrança será habilitada em breve. Continue aproveitando seu período de teste.")}
+          >
+            {trialing ? "Assinar quando o teste terminar" : "Reativar assinatura"}
+          </Button>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        {PLANS.map((plan) => (
-          <Card key={plan.id} className={plan.highlight ? "border-primary/50" : ""} style={plan.highlight ? { boxShadow: "var(--shadow-glow)" } : undefined}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{plan.name}</CardTitle>
-                {plan.highlight && <Badge className="bg-primary/15 text-primary border-primary/20">Recomendado</Badge>}
-              </div>
-              <div className="pt-2">
-                <span className="text-3xl font-semibold">{plan.price}</span>
-                <span className="text-sm text-muted-foreground">/mês</span>
-              </div>
-              <p className="text-sm text-muted-foreground">{plan.desc}</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2 text-sm">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="size-4 text-primary mt-0.5 shrink-0" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full"
-                variant={plan.highlight ? "default" : "secondary"}
-                disabled={currentPlan === plan.id}
-                onClick={() => toast.info("Cobrança ainda não implementada nesta versão.")}
-              >
-                {currentPlan === plan.id ? "Plano atual" : "Escolher"}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <p className="text-xs text-muted-foreground">Esta tela é demonstrativa. A cobrança real pode ser ativada conectando um provedor de pagamentos.</p>
+      <p className="text-xs text-muted-foreground">
+        Sem fidelidade. Sem limite de produtos, movimentações ou relatórios.
+      </p>
     </div>
   );
 }

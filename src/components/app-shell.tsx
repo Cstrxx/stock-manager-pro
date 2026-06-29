@@ -1,8 +1,9 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut } from "lucide-react";
+import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { daysLeft, type Company } from "@/lib/inventory";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -21,14 +22,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const { data: company } = useQuery({
     queryKey: ["company"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("name, plan").maybeSingle();
-      return data;
+      const { data } = await supabase
+        .from("companies")
+        .select("id, name, plan, trial_ends_at, subscription_status")
+        .maybeSingle();
+      return data as Company | null;
     },
   });
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return null;
@@ -43,6 +49,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     router.navigate({ to: "/auth", replace: true });
   }
+
+  const trialing = company?.subscription_status === "trialing";
+  const trialDays = company ? daysLeft(company.trial_ends_at) : 0;
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -74,8 +83,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="px-2 py-2 mb-2">
+        <div className="p-3 border-t border-sidebar-border space-y-2">
+          {trialing && (
+            <Link to="/billing" className="block rounded-md border border-primary/30 bg-primary/5 px-3 py-2 hover:bg-primary/10 transition-colors">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                <Sparkles className="size-3.5" /> Período de teste
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                {trialDays > 0 ? `${trialDays} dia${trialDays === 1 ? "" : "s"} restante${trialDays === 1 ? "" : "s"}` : "Expira hoje"}
+              </div>
+            </Link>
+          )}
+          <div className="px-2 py-1">
             <div className="text-sm font-medium truncate">{profile?.full_name ?? "Usuário"}</div>
             <div className="text-xs text-muted-foreground truncate">{profile?.email}</div>
           </div>
@@ -106,6 +125,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </div>
         </div>
+        {trialing && (
+          <div className="md:hidden bg-primary/10 border-b border-primary/20 px-4 py-2 text-xs text-primary flex items-center gap-1.5">
+            <Sparkles className="size-3.5" /> Teste grátis · {trialDays} dia{trialDays === 1 ? "" : "s"} · <Link to="/billing" className="underline">ver plano</Link>
+          </div>
+        )}
         <div className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">{children}</div>
       </main>
     </div>
