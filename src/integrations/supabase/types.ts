@@ -21,6 +21,8 @@ export type Database = {
           name: string
           owner_id: string
           plan: string
+          subscription_status: string
+          trial_ends_at: string
           updated_at: string
         }
         Insert: {
@@ -29,6 +31,8 @@ export type Database = {
           name: string
           owner_id: string
           plan?: string
+          subscription_status?: string
+          trial_ends_at?: string
           updated_at?: string
         }
         Update: {
@@ -37,6 +41,8 @@ export type Database = {
           name?: string
           owner_id?: string
           plan?: string
+          subscription_status?: string
+          trial_ends_at?: string
           updated_at?: string
         }
         Relationships: []
@@ -48,6 +54,8 @@ export type Database = {
           cost_price: number | null
           created_at: string
           id: string
+          invoice_file_path: string | null
+          invoice_number: string | null
           min_stock: number
           name: string
           quantity: number
@@ -60,6 +68,8 @@ export type Database = {
           cost_price?: number | null
           created_at?: string
           id?: string
+          invoice_file_path?: string | null
+          invoice_number?: string | null
           min_stock?: number
           name: string
           quantity?: number
@@ -72,6 +82,8 @@ export type Database = {
           cost_price?: number | null
           created_at?: string
           id?: string
+          invoice_file_path?: string | null
+          invoice_number?: string | null
           min_stock?: number
           name?: string
           quantity?: number
@@ -125,31 +137,43 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          customer_name: string | null
           id: string
           note: string | null
           product_id: string
           quantity: number
+          sale_id: string | null
+          total_amount: number | null
           type: string
+          unit_price: number | null
         }
         Insert: {
           company_id: string
           created_at?: string
           created_by?: string | null
+          customer_name?: string | null
           id?: string
           note?: string | null
           product_id: string
           quantity: number
+          sale_id?: string | null
+          total_amount?: number | null
           type: string
+          unit_price?: number | null
         }
         Update: {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          customer_name?: string | null
           id?: string
           note?: string | null
           product_id?: string
           quantity?: number
+          sale_id?: string | null
+          total_amount?: number | null
           type?: string
+          unit_price?: number | null
         }
         Relationships: [
           {
