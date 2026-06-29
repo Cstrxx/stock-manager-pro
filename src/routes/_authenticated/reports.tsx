@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Movement, Product } from "@/lib/inventory";
+import { useMemo } from "react";
+import { User } from "lucide-react";
+import { formatBRL, type Movement, type Product } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   ssr: false,
@@ -14,66 +16,131 @@ export const Route = createFileRoute("/_authenticated/reports")({
 
 function ReportsPage() {
   const { data: movements = [] } = useQuery({
-    queryKey: ["movements", "all"],
+    queryKey: ["movements", "report"],
     queryFn: async () => {
       const { data } = await supabase
         .from("stock_movements")
-        .select("*, products(name)")
+        .select("id, type, quantity, note, customer_name, unit_price, total_amount, sale_id, product_id, created_at, products(name)")
         .order("created_at", { ascending: false })
-        .limit(500);
-      return (data ?? []) as Movement[];
+        .limit(1000);
+      return (data ?? []) as unknown as Movement[];
     },
   });
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const { data } = await supabase.from("products").select("*");
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, category, quantity, min_stock, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at");
       return (data ?? []) as Product[];
     },
   });
 
-  const entries = movements.filter((m) => m.type === "in");
-  const exits = movements.filter((m) => m.type === "out");
+  const { entries, exits, sales, ranking, totalIn, totalOut, revenue, byProductIds } = useMemo(() => {
+    const entries = movements.filter((m) => m.type === "in");
+    const exits = movements.filter((m) => m.type === "out");
+    const totalIn = entries.reduce((s, m) => s + m.quantity, 0);
+    const totalOut = exits.reduce((s, m) => s + m.quantity, 0);
+    const revenue = exits.reduce((s, m) => s + Number(m.total_amount ?? 0), 0);
 
-  const totalIn = entries.reduce((s, m) => s + m.quantity, 0);
-  const totalOut = exits.reduce((s, m) => s + m.quantity, 0);
+    // group sales by sale_id, fallback to id
+    const salesMap = new Map<string, { id: string; created_at: string; customer: string; items: { name: string; qty: number; total: number }[]; total: number }>();
+    for (const m of exits) {
+      const key = m.sale_id ?? m.id;
+      const cur = salesMap.get(key) ?? {
+        id: key,
+        created_at: m.created_at,
+        customer: m.customer_name || "Cliente",
+        items: [],
+        total: 0,
+      };
+      cur.items.push({ name: m.products?.name ?? "—", qty: m.quantity, total: Number(m.total_amount ?? 0) });
+      cur.total += Number(m.total_amount ?? 0);
+      if (m.created_at < cur.created_at) cur.created_at = m.created_at;
+      salesMap.set(key, cur);
+    }
+    const sales = [...salesMap.values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-  const byProduct = new Map<string, { name: string; in: number; out: number; total: number }>();
-  for (const m of movements) {
-    const key = m.product_id;
-    const name = m.products?.name ?? "—";
-    const cur = byProduct.get(key) ?? { name, in: 0, out: 0, total: 0 };
-    if (m.type === "in") cur.in += m.quantity;
-    else cur.out += m.quantity;
-    cur.total = cur.in + cur.out;
-    byProduct.set(key, cur);
-  }
-  const ranking = [...byProduct.values()].sort((a, b) => b.total - a.total).slice(0, 10);
+    const byProduct = new Map<string, { name: string; in: number; out: number; total: number }>();
+    for (const m of movements) {
+      const cur = byProduct.get(m.product_id) ?? { name: m.products?.name ?? "—", in: 0, out: 0, total: 0 };
+      if (m.type === "in") cur.in += m.quantity; else cur.out += m.quantity;
+      cur.total = cur.in + cur.out;
+      byProduct.set(m.product_id, cur);
+    }
+    const ranking = [...byProduct.values()].sort((a, b) => b.total - a.total).slice(0, 10);
 
-  const movedIds = new Set(byProduct.keys());
-  const stale = products.filter((p) => !movedIds.has(p.id));
+    return { entries, exits, sales, ranking, totalIn, totalOut, revenue, byProductIds: new Set(byProduct.keys()) };
+  }, [movements]);
+
+  const stale = products.filter((p) => !byProductIds.has(p.id));
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Acompanhe a movimentação do seu estoque.</p>
+        <p className="text-sm text-muted-foreground">Vendas, movimentações e desempenho do estoque.</p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Summary label="Total de entradas" value={totalIn} tone="primary" />
-        <Summary label="Total de saídas" value={totalOut} tone="warning" />
-        <Summary label="Movimentações registradas" value={movements.length} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Summary label="Receita (saídas)" value={formatBRL(revenue)} tone="primary" />
+        <Summary label="Vendas registradas" value={sales.length.toLocaleString("pt-BR")} />
+        <Summary label="Itens vendidos" value={totalOut.toLocaleString("pt-BR")} tone="warning" />
+        <Summary label="Itens recebidos" value={totalIn.toLocaleString("pt-BR")} />
       </div>
 
-      <Tabs defaultValue="ranking">
+      <Tabs defaultValue="sales">
         <TabsList>
+          <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="ranking">Mais movimentados</TabsTrigger>
           <TabsTrigger value="entries">Entradas</TabsTrigger>
-          <TabsTrigger value="exits">Saídas</TabsTrigger>
           <TabsTrigger value="stale">Parados</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="sales">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Histórico de vendas</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {sales.length === 0 ? (
+                <p className="text-center text-muted-foreground py-10 text-sm">Nenhuma venda registrada ainda.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {sales.map((s) => {
+                    const d = new Date(s.created_at);
+                    return (
+                      <li key={s.id} className="p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{d.toLocaleDateString("pt-BR")}</span>
+                            <span>·</span>
+                            <span>{d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5 text-sm font-medium">
+                            <User className="size-3.5 text-muted-foreground" /> {s.customer}
+                          </div>
+                          <ul className="mt-2 space-y-0.5 text-sm text-muted-foreground">
+                            {s.items.map((it, i) => (
+                              <li key={i} className="flex items-center gap-2">
+                                <span className="text-foreground">{it.name}</span>
+                                <Badge variant="outline" className="font-normal">×{it.qty}</Badge>
+                                {it.total > 0 && <span className="text-xs">{formatBRL(it.total)}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-xs text-muted-foreground">Total</div>
+                          <div className="text-lg font-semibold tabular-nums">{formatBRL(s.total)}</div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="ranking">
           <Card><CardHeader><CardTitle className="text-base">Top 10 produtos mais movimentados</CardTitle></CardHeader>
@@ -92,7 +159,7 @@ function ReportsPage() {
                     <TableRow key={i}>
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell className="text-right tabular-nums text-primary">+{r.in}</TableCell>
-                      <TableCell className="text-right tabular-nums text-warning">−{r.out}</TableCell>
+                      <TableCell className="text-right tabular-nums text-destructive">−{r.out}</TableCell>
                       <TableCell className="text-right tabular-nums font-medium">{r.total}</TableCell>
                     </TableRow>
                   ))}
@@ -102,8 +169,30 @@ function ReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="entries"><MovementsTable items={entries} kind="in" /></TabsContent>
-        <TabsContent value="exits"><MovementsTable items={exits} kind="out" /></TabsContent>
+        <TabsContent value="entries">
+          <Card><CardContent className="p-0">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Produto</TableHead>
+                <TableHead className="text-right">Qtd</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {entries.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma entrada.</TableCell></TableRow>
+                ) : entries.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">{new Date(m.created_at).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="font-medium">{m.products?.name ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums text-primary">+{m.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums text-sm">{m.total_amount != null ? formatBRL(Number(m.total_amount)) : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent></Card>
+        </TabsContent>
 
         <TabsContent value="stale">
           <Card><CardHeader><CardTitle className="text-base">Produtos sem movimentação</CardTitle></CardHeader>
@@ -134,43 +223,12 @@ function ReportsPage() {
   );
 }
 
-function Summary({ label, value, tone }: { label: string; value: number; tone?: "primary" | "warning" }) {
+function Summary({ label, value, tone }: { label: string; value: string; tone?: "primary" | "warning" }) {
   const cls = tone === "primary" ? "text-primary" : tone === "warning" ? "text-warning" : "text-foreground";
   return (
     <Card><CardContent className="p-5">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`mt-2 text-3xl font-semibold tabular-nums ${cls}`}>{value.toLocaleString("pt-BR")}</div>
-    </CardContent></Card>
-  );
-}
-
-function MovementsTable({ items, kind }: { items: Movement[]; kind: "in" | "out" }) {
-  return (
-    <Card><CardContent className="p-0">
-      <Table>
-        <TableHeader><TableRow>
-          <TableHead>Data</TableHead>
-          <TableHead>Produto</TableHead>
-          <TableHead className="text-right">Quantidade</TableHead>
-          <TableHead>Observação</TableHead>
-        </TableRow></TableHeader>
-        <TableBody>
-          {items.length === 0 ? (
-            <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum registro.</TableCell></TableRow>
-          ) : items.map((m) => (
-            <TableRow key={m.id}>
-              <TableCell className="text-muted-foreground text-sm">{new Date(m.created_at).toLocaleString("pt-BR")}</TableCell>
-              <TableCell className="font-medium">{m.products?.name ?? "—"}</TableCell>
-              <TableCell className={`text-right tabular-nums ${kind === "in" ? "text-primary" : "text-warning"}`}>
-                {kind === "in" ? "+" : "−"}{m.quantity}
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
-                {m.note ? <Badge variant="outline">{m.note}</Badge> : ""}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className={`mt-2 text-2xl font-semibold tabular-nums ${cls}`}>{value}</div>
     </CardContent></Card>
   );
 }
