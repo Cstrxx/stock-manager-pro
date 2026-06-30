@@ -11,9 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
-import { ArrowDownToLine, ShoppingCart, Plus, Trash2, User } from "lucide-react";
+import { ArrowDownToLine, ShoppingCart, Plus, Trash2, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { getCompanyId, formatBRL, type Movement, type Product } from "@/lib/inventory";
+import { formatDoc, onlyDigits } from "@/lib/cpf-cnpj";
+import type { Partner } from "@/lib/partners";
+import { Link } from "@tanstack/react-router";
+
 
 export const Route = createFileRoute("/_authenticated/movements")({
   ssr: false,
