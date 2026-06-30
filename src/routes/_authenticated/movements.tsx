@@ -381,12 +381,14 @@ function SaleDialog({ onClose }: { onClose: () => void }) {
         unit_price: i.unit_price || null,
         total_amount: i.unit_price ? i.unit_price * i.quantity : null,
         customer_name,
+        partner_id: partnerId,
         sale_id,
         note: note.trim() || null,
         created_by: u.user?.id,
       }));
       const { error } = await supabase.from("stock_movements").insert(rows);
       if (error) throw error;
+
     },
     onSuccess: () => {
       toast.success("Venda registrada");
@@ -403,10 +405,13 @@ function SaleDialog({ onClose }: { onClose: () => void }) {
         <DialogTitle className="flex items-center gap-2"><ShoppingCart className="size-5 text-destructive" /> Registrar venda / saída</DialogTitle>
       </DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5"><User className="size-3.5" /> Cliente <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-          <Input value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Deixe em branco para registrar como 'Cliente'" />
-        </div>
+        <PartnerPicker
+          value={partnerId}
+          onChange={setPartnerId}
+          customerName={customer}
+          onCustomerNameChange={setCustomer}
+        />
+
 
         <div className="rounded-md border border-border p-3 space-y-3">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adicionar produto</div>
