@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Boxes } from "lucide-react";
+import { Boxes, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { detectDocType, fetchCnpj, formatDoc, isValidDoc, onlyDigits } from "@/lib/cpf-cnpj";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
