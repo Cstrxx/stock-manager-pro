@@ -47,6 +47,71 @@ export type Database = {
         }
         Relationships: []
       }
+      partners: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_id: string
+          cpf_cnpj: string | null
+          created_at: string
+          doc_type: string | null
+          email: string | null
+          fantasy_name: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_id: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          doc_type?: string | null
+          email?: string | null
+          fantasy_name?: string | null
+          id?: string
+          kind: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_id?: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          doc_type?: string | null
+          email?: string | null
+          fantasy_name?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -140,6 +205,7 @@ export type Database = {
           customer_name: string | null
           id: string
           note: string | null
+          partner_id: string | null
           product_id: string
           quantity: number
           sale_id: string | null
@@ -154,6 +220,7 @@ export type Database = {
           customer_name?: string | null
           id?: string
           note?: string | null
+          partner_id?: string | null
           product_id: string
           quantity: number
           sale_id?: string | null
@@ -168,6 +235,7 @@ export type Database = {
           customer_name?: string | null
           id?: string
           note?: string | null
+          partner_id?: string | null
           product_id?: string
           quantity?: number
           sale_id?: string | null
@@ -181,6 +249,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {

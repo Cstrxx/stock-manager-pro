@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut, Sparkles } from "lucide-react";
+import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut, Sparkles, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,13 @@ import type { ReactNode } from "react";
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/products", label: "Produtos", icon: Package },
+  { to: "/partners", label: "Clientes & Fornec.", icon: Users },
   { to: "/movements", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/alerts", label: "Alertas", icon: BellRing },
   { to: "/reports", label: "Relatórios", icon: BarChart3 },
   { to: "/billing", label: "Plano", icon: CreditCard },
 ] as const;
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
