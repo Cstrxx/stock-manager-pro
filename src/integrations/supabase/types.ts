@@ -16,7 +16,9 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          cpf_cnpj: string | null
           created_at: string
+          doc_type: string | null
           id: string
           name: string
           owner_id: string
@@ -26,7 +28,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cpf_cnpj?: string | null
           created_at?: string
+          doc_type?: string | null
           id?: string
           name: string
           owner_id: string
@@ -36,7 +40,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cpf_cnpj?: string | null
           created_at?: string
+          doc_type?: string | null
           id?: string
           name?: string
           owner_id?: string
