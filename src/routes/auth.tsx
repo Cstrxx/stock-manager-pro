@@ -108,14 +108,43 @@ function LoginForm() {
 
 function SignupForm() {
   const [companyName, setCompanyName] = useState("");
+  const [docInput, setDocInput] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
   const navigate = useNavigate();
+
+  const docDigits = useMemo(() => onlyDigits(docInput), [docInput]);
+  const docType = detectDocType(docDigits);
+  const docValid = docDigits.length === 0 ? null : isValidDoc(docDigits);
+
+  // Auto-fill company name from BrasilAPI on valid CNPJ
+  const lastFetchedRef = useRef("");
+  useEffect(() => {
+    if (docType !== "CNPJ" || !docValid) return;
+    if (docDigits === lastFetchedRef.current) return;
+    lastFetchedRef.current = docDigits;
+    const ctrl = new AbortController();
+    setCnpjLoading(true);
+    fetchCnpj(docDigits, ctrl.signal)
+      .then((info) => {
+        if (!info) return;
+        if (!companyName.trim() && (info.nome_fantasia || info.razao_social)) {
+          setCompanyName(info.nome_fantasia || info.razao_social || "");
+          toast.success("Dados da empresa preenchidos pelo CNPJ");
+        }
+      })
+      .finally(() => setCnpjLoading(false));
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docDigits, docType, docValid]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!docDigits) { toast.error("Informe o CPF ou CNPJ da empresa."); return; }
+    if (!docValid) { toast.error("CPF/CNPJ inválido."); return; }
     if (password.length < 8) { toast.error("A senha precisa de pelo menos 8 caracteres."); return; }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
@@ -123,7 +152,7 @@ function SignupForm() {
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { company_name: companyName, full_name: fullName },
+        data: { company_name: companyName, full_name: fullName, company_doc: docDigits },
       },
     });
     setLoading(false);
@@ -132,8 +161,37 @@ function SignupForm() {
     navigate({ to: "/dashboard" });
   }
 
+  const docFieldClass =
+    docValid === true ? "border-primary/60 focus-visible:ring-primary/30 pr-9 tabular-nums"
+    : docValid === false ? "border-destructive/70 focus-visible:ring-destructive/30 pr-9 tabular-nums"
+    : "pr-9 tabular-nums";
+
   return (
     <form onSubmit={onSubmit} className="space-y-4 mt-6">
+      <div className="space-y-2">
+        <Label htmlFor="doc">CPF ou CNPJ da empresa</Label>
+        <div className="relative">
+          <Input
+            id="doc"
+            required
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={18}
+            placeholder="00.000.000/0000-00"
+            value={docInput}
+            onChange={(e) => setDocInput(formatDoc(e.target.value))}
+            onPaste={(e) => { e.preventDefault(); setDocInput(formatDoc(e.clipboardData.getData("text"))); }}
+            className={docFieldClass}
+          />
+          {cnpjLoading && <Loader2 className="size-4 absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" />}
+          {!cnpjLoading && docValid === true && <CheckCircle2 className="size-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-primary" />}
+          {!cnpjLoading && docValid === false && <XCircle className="size-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-destructive" />}
+        </div>
+        <p className="text-xs h-4">
+          {docType && docValid === true && <span className="text-primary">{docType} válido</span>}
+          {docValid === false && <span className="text-destructive">CPF/CNPJ inválido</span>}
+        </p>
+      </div>
       <div className="space-y-2">
         <Label htmlFor="company">Nome da empresa</Label>
         <Input id="company" required value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Ex.: Distribuidora ABC" />
@@ -151,7 +209,7 @@ function SignupForm() {
         <Input id="password2" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
         <p className="text-xs text-muted-foreground">Mínimo de 8 caracteres.</p>
       </div>
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading || docValid === false} className="w-full">
         {loading ? "Criando..." : "Criar conta"}
       </Button>
     </form>
