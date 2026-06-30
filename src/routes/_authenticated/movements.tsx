@@ -200,15 +200,150 @@ function EntryDialog({ onClose }: { onClose: () => void }) {
 
 type CartItem = { product_id: string; name: string; quantity: number; unit_price: number; available: number };
 
+function usePartners() {
+  return useQuery({
+    queryKey: ["partners"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("partners")
+        .select("id, name, fantasy_name, cpf_cnpj, kind")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as unknown as Pick<Partner, "id" | "name" | "fantasy_name" | "cpf_cnpj" | "kind">[];
+    },
+  });
+}
+
+function PartnerPicker({
+  value,
+  onChange,
+  customerName,
+  onCustomerNameChange,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+  customerName: string;
+  onCustomerNameChange: (n: string) => void;
+}) {
+  const { data: partners = [] } = usePartners();
+  const customers = useMemo(
+    () => partners.filter((p) => p.kind === "customer" || p.kind === "both"),
+    [partners],
+  );
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const selected = value ? customers.find((p) => p.id === value) ?? null : null;
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const qDigits = onlyDigits(query);
+    if (!q) return customers.slice(0, 8);
+    return customers
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.fantasy_name ?? "").toLowerCase().includes(q) ||
+          (qDigits && (p.cpf_cnpj ?? "").includes(qDigits)),
+      )
+      .slice(0, 8);
+  }, [customers, query]);
+
+  if (selected) {
+    return (
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5">
+          <User className="size-3.5" /> Cliente
+        </Label>
+        <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium truncate">{selected.name}</div>
+            <div className="text-xs text-muted-foreground tabular-nums">
+              {selected.cpf_cnpj ? formatDoc(selected.cpf_cnpj) : "Sem CPF/CNPJ"}
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              onChange(null);
+              onCustomerNameChange("");
+              setQuery("");
+            }}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 relative">
+      <Label className="flex items-center gap-1.5">
+        <User className="size-3.5" /> Cliente <span className="text-muted-foreground font-normal">(opcional)</span>
+      </Label>
+      <Input
+        value={query || customerName}
+        onChange={(e) => {
+          const v = e.target.value;
+          setQuery(v);
+          onCustomerNameChange(v);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Buscar cadastro ou digitar nome livre..."
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute z-20 left-0 right-0 mt-1 rounded-md border border-border bg-popover shadow-lg max-h-60 overflow-auto">
+          {matches.map((p) => (
+            <button
+              type="button"
+              key={p.id}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(p.id);
+                onCustomerNameChange(p.name);
+                setQuery("");
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-center justify-between gap-2"
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{p.name}</div>
+                {p.fantasy_name && (
+                  <div className="text-xs text-muted-foreground truncate">{p.fantasy_name}</div>
+                )}
+              </div>
+              {p.cpf_cnpj && (
+                <div className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  {formatDoc(p.cpf_cnpj)}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="text-[11px] text-muted-foreground">
+        Não encontrou? <Link to="/partners" className="text-primary hover:underline">Cadastrar cliente</Link>
+      </div>
+    </div>
+  );
+}
+
 function SaleDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const { data: products = [] } = useProducts();
   const [customer, setCustomer] = useState("");
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [items, setItems] = useState<CartItem[]>([]);
   const [selProduct, setSelProduct] = useState("");
   const [qty, setQty] = useState<number>(1);
   const [price, setPrice] = useState<string>("");
   const [note, setNote] = useState("");
+
 
   const total = useMemo(() => items.reduce((s, i) => s + i.quantity * i.unit_price, 0), [items]);
 
