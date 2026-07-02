@@ -1,9 +1,9 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut, Sparkles, Users } from "lucide-react";
+import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut, Sparkles, Users, Wallet, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { daysLeft, type Company } from "@/lib/inventory";
+import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -13,6 +13,7 @@ const nav = [
   { to: "/movements", label: "Movimentações", icon: ArrowLeftRight },
   { to: "/alerts", label: "Alertas", icon: BellRing },
   { to: "/reports", label: "Relatórios", icon: BarChart3 },
+  { to: "/faturamento", label: "Faturamento", icon: Wallet },
   { to: "/billing", label: "Plano", icon: CreditCard },
 ] as const;
 
