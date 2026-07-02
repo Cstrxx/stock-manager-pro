@@ -108,15 +108,35 @@ function ReportsPage() {
 
   const stale = products.filter((p) => !byProductIds.has(p.id));
 
+  const deltaPct = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : (revenue > 0 ? 100 : 0);
+
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Vendas, movimentações e desempenho do estoque.</p>
+      <header className="flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Vendas, movimentações e desempenho do estoque.</p>
+        </div>
+        <div className="flex flex-wrap gap-1 bg-muted/50 p-1 rounded-md">
+          {PERIODS.map((p) => (
+            <Button
+              key={p.key}
+              size="sm"
+              variant={period === p.key ? "default" : "ghost"}
+              className="h-7 px-3 text-xs"
+              onClick={() => setPeriod(p.key)}
+            >{p.label}</Button>
+          ))}
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Summary label="Receita (saídas)" value={formatBRL(revenue)} tone="primary" />
+        <Summary
+          label="Receita (saídas)"
+          value={formatBRL(revenue)}
+          tone="primary"
+          delta={deltaPct}
+        />
         <Summary label="Vendas registradas" value={sales.length.toLocaleString("pt-BR")} />
         <Summary label="Itens vendidos" value={totalOut.toLocaleString("pt-BR")} tone="warning" />
         <Summary label="Itens recebidos" value={totalIn.toLocaleString("pt-BR")} />
