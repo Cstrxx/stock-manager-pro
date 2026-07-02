@@ -32,7 +32,7 @@ function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, quantity, min_stock, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at")
+        .select("id, name, category, quantity, min_stock, initial_quantity, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at")
         .order("name");
       if (error) throw error;
       return (data ?? []) as Product[];
