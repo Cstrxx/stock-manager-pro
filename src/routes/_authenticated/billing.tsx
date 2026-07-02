@@ -62,7 +62,7 @@ function BillingPage() {
                 </div>
               </div>
             </div>
-            <Badge className="bg-primary/15 text-primary border-primary/20">30 dias grátis</Badge>
+            <Badge className="bg-primary/15 text-primary border-primary/20">14 dias grátis</Badge>
           </CardContent>
         </Card>
       )}
