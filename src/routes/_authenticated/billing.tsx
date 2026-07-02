@@ -80,7 +80,7 @@ function BillingPage() {
             <span className="text-4xl font-semibold tracking-tight">R$ 79,99</span>
             <span className="text-sm text-muted-foreground pb-1.5">/mês</span>
           </div>
-          <p className="text-xs text-muted-foreground">Cobrado mensalmente após o período de 30 dias gratuitos. Cancele quando quiser.</p>
+          <p className="text-xs text-muted-foreground">Cobrado mensalmente após o período de 14 dias gratuitos. Cancele quando quiser.</p>
         </CardHeader>
         <CardContent className="space-y-5">
           <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
