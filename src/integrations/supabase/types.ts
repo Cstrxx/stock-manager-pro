@@ -125,6 +125,7 @@ export type Database = {
           cost_price: number | null
           created_at: string
           id: string
+          initial_quantity: number
           invoice_file_path: string | null
           invoice_number: string | null
           min_stock: number
@@ -139,6 +140,7 @@ export type Database = {
           cost_price?: number | null
           created_at?: string
           id?: string
+          initial_quantity?: number
           invoice_file_path?: string | null
           invoice_number?: string | null
           min_stock?: number
@@ -153,6 +155,7 @@ export type Database = {
           cost_price?: number | null
           created_at?: string
           id?: string
+          initial_quantity?: number
           invoice_file_path?: string | null
           invoice_number?: string | null
           min_stock?: number

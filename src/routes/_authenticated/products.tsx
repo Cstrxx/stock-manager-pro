@@ -32,7 +32,7 @@ function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, quantity, min_stock, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at")
+        .select("id, name, category, quantity, min_stock, initial_quantity, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at")
         .order("name");
       if (error) throw error;
       return (data ?? []) as Product[];
@@ -214,7 +214,8 @@ function ProductDialog({ editing, onClose }: { editing: Product | null; onClose:
         if (error) throw error;
       } else {
         const company_id = await getCompanyId();
-        const { error } = await supabase.from("products").insert({ ...payload, company_id });
+        const initial = Math.max(1, Number(quantity));
+        const { error } = await supabase.from("products").insert({ ...payload, company_id, initial_quantity: initial });
         if (error) throw error;
       }
     },

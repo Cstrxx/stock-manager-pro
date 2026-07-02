@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useMemo } from "react";
-import { User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
+import { User, TrendingUp, TrendingDown } from "lucide-react";
 import { formatBRL, type Movement, type Product } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -14,16 +15,47 @@ export const Route = createFileRoute("/_authenticated/reports")({
   component: ReportsPage,
 });
 
+const PERIODS = [
+  { key: "7d", label: "7 dias", days: 7 },
+  { key: "1m", label: "1 mês", days: 30 },
+  { key: "3m", label: "3 meses", days: 90 },
+  { key: "6m", label: "6 meses", days: 180 },
+  { key: "1y", label: "1 ano", days: 365 },
+] as const;
+type PeriodKey = (typeof PERIODS)[number]["key"];
+
 function ReportsPage() {
+  const [period, setPeriod] = useState<PeriodKey>(() => {
+    if (typeof window === "undefined") return "1m";
+    return (localStorage.getItem("reports:period") as PeriodKey) || "1m";
+  });
+  useEffect(() => { localStorage.setItem("reports:period", period); }, [period]);
+  const days = PERIODS.find((p) => p.key === period)!.days;
+  const since = useMemo(() => new Date(Date.now() - days * 86400_000).toISOString(), [days]);
+  const prevSince = useMemo(() => new Date(Date.now() - 2 * days * 86400_000).toISOString(), [days]);
+
   const { data: movements = [] } = useQuery({
-    queryKey: ["movements", "report"],
+    queryKey: ["movements", "report", period],
     queryFn: async () => {
       const { data } = await supabase
         .from("stock_movements")
         .select("id, type, quantity, note, customer_name, unit_price, total_amount, sale_id, product_id, created_at, products(name)")
-        .order("created_at", { ascending: false })
-        .limit(1000);
+        .gte("created_at", since)
+        .order("created_at", { ascending: false });
       return (data ?? []) as unknown as Movement[];
+    },
+  });
+
+  const { data: prevRevenue = 0 } = useQuery({
+    queryKey: ["revenue", "prev", period],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("stock_movements")
+        .select("total_amount")
+        .eq("type", "out")
+        .gte("created_at", prevSince)
+        .lt("created_at", since);
+      return (data ?? []).reduce((s, m) => s + Number(m.total_amount ?? 0), 0);
     },
   });
 
@@ -32,7 +64,7 @@ function ReportsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, category, quantity, min_stock, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at");
+        .select("id, name, category, quantity, min_stock, initial_quantity, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at");
       return (data ?? []) as Product[];
     },
   });
@@ -76,15 +108,35 @@ function ReportsPage() {
 
   const stale = products.filter((p) => !byProductIds.has(p.id));
 
+  const deltaPct = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : (revenue > 0 ? 100 : 0);
+
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Vendas, movimentações e desempenho do estoque.</p>
+      <header className="flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Vendas, movimentações e desempenho do estoque.</p>
+        </div>
+        <div className="flex flex-wrap gap-1 bg-muted/50 p-1 rounded-md">
+          {PERIODS.map((p) => (
+            <Button
+              key={p.key}
+              size="sm"
+              variant={period === p.key ? "default" : "ghost"}
+              className="h-7 px-3 text-xs"
+              onClick={() => setPeriod(p.key)}
+            >{p.label}</Button>
+          ))}
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Summary label="Receita (saídas)" value={formatBRL(revenue)} tone="primary" />
+        <Summary
+          label="Receita (saídas)"
+          value={formatBRL(revenue)}
+          tone="primary"
+          delta={deltaPct}
+        />
         <Summary label="Vendas registradas" value={sales.length.toLocaleString("pt-BR")} />
         <Summary label="Itens vendidos" value={totalOut.toLocaleString("pt-BR")} tone="warning" />
         <Summary label="Itens recebidos" value={totalIn.toLocaleString("pt-BR")} />
@@ -223,12 +275,19 @@ function ReportsPage() {
   );
 }
 
-function Summary({ label, value, tone }: { label: string; value: string; tone?: "primary" | "warning" }) {
+function Summary({ label, value, tone, delta }: { label: string; value: string; tone?: "primary" | "warning"; delta?: number }) {
   const cls = tone === "primary" ? "text-primary" : tone === "warning" ? "text-warning" : "text-foreground";
+  const positive = (delta ?? 0) >= 0;
   return (
     <Card><CardContent className="p-5">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={`mt-2 text-2xl font-semibold tabular-nums ${cls}`}>{value}</div>
+      {delta != null && (
+        <div className={`mt-1 text-xs flex items-center gap-1 ${positive ? "text-primary" : "text-destructive"}`}>
+          {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+          {positive ? "+" : ""}{delta.toFixed(1)}% vs. período anterior
+        </div>
+      )}
     </CardContent></Card>
   );
 }
