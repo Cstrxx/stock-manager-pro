@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, XCircle, CheckCircle2 } from "lucide-react";
-import { stockStatus, type Product } from "@/lib/inventory";
+import { stockStatus, soldPercent, type Product } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   ssr: false,
