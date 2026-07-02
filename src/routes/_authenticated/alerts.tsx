@@ -65,17 +65,21 @@ function AlertList({ items, empty }: { items: Product[]; empty: string }) {
   if (items.length === 0) return <p className="text-sm text-muted-foreground py-6 text-center">{empty}</p>;
   return (
     <ul className="divide-y divide-border">
-      {items.map((p) => (
-        <li key={p.id} className="py-3 flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium">{p.name}</div>
-            <div className="text-xs text-muted-foreground">{p.category ?? "Sem categoria"}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-sm tabular-nums">{p.quantity} <span className="text-muted-foreground">/ mín {p.min_stock}</span></div>
-          </div>
-        </li>
-      ))}
+      {items.map((p) => {
+        const pct = Math.round(soldPercent(p));
+        return (
+          <li key={p.id} className="py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{p.name}</div>
+              <div className="text-xs text-muted-foreground truncate">{p.category ?? "Sem categoria"} · {pct}% vendido do ciclo</div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-sm tabular-nums">{p.quantity} <span className="text-muted-foreground">/ {p.initial_quantity}</span></div>
+              <div className="text-[11px] text-muted-foreground">mín {p.min_stock}</div>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }
