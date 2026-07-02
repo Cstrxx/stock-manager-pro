@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useMemo } from "react";
-import { User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
+import { User, TrendingUp, TrendingDown } from "lucide-react";
 import { formatBRL, type Movement, type Product } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -14,16 +15,47 @@ export const Route = createFileRoute("/_authenticated/reports")({
   component: ReportsPage,
 });
 
+const PERIODS = [
+  { key: "7d", label: "7 dias", days: 7 },
+  { key: "1m", label: "1 mês", days: 30 },
+  { key: "3m", label: "3 meses", days: 90 },
+  { key: "6m", label: "6 meses", days: 180 },
+  { key: "1y", label: "1 ano", days: 365 },
+] as const;
+type PeriodKey = (typeof PERIODS)[number]["key"];
+
 function ReportsPage() {
+  const [period, setPeriod] = useState<PeriodKey>(() => {
+    if (typeof window === "undefined") return "1m";
+    return (localStorage.getItem("reports:period") as PeriodKey) || "1m";
+  });
+  useEffect(() => { localStorage.setItem("reports:period", period); }, [period]);
+  const days = PERIODS.find((p) => p.key === period)!.days;
+  const since = useMemo(() => new Date(Date.now() - days * 86400_000).toISOString(), [days]);
+  const prevSince = useMemo(() => new Date(Date.now() - 2 * days * 86400_000).toISOString(), [days]);
+
   const { data: movements = [] } = useQuery({
-    queryKey: ["movements", "report"],
+    queryKey: ["movements", "report", period],
     queryFn: async () => {
       const { data } = await supabase
         .from("stock_movements")
         .select("id, type, quantity, note, customer_name, unit_price, total_amount, sale_id, product_id, created_at, products(name)")
-        .order("created_at", { ascending: false })
-        .limit(1000);
+        .gte("created_at", since)
+        .order("created_at", { ascending: false });
       return (data ?? []) as unknown as Movement[];
+    },
+  });
+
+  const { data: prevRevenue = 0 } = useQuery({
+    queryKey: ["revenue", "prev", period],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("stock_movements")
+        .select("total_amount")
+        .eq("type", "out")
+        .gte("created_at", prevSince)
+        .lt("created_at", since);
+      return (data ?? []).reduce((s, m) => s + Number(m.total_amount ?? 0), 0);
     },
   });
 
