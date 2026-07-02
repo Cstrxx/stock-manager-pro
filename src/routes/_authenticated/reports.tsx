@@ -275,12 +275,19 @@ function ReportsPage() {
   );
 }
 
-function Summary({ label, value, tone }: { label: string; value: string; tone?: "primary" | "warning" }) {
+function Summary({ label, value, tone, delta }: { label: string; value: string; tone?: "primary" | "warning"; delta?: number }) {
   const cls = tone === "primary" ? "text-primary" : tone === "warning" ? "text-warning" : "text-foreground";
+  const positive = (delta ?? 0) >= 0;
   return (
     <Card><CardContent className="p-5">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={`mt-2 text-2xl font-semibold tabular-nums ${cls}`}>{value}</div>
+      {delta != null && (
+        <div className={`mt-1 text-xs flex items-center gap-1 ${positive ? "text-primary" : "text-destructive"}`}>
+          {positive ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+          {positive ? "+" : ""}{delta.toFixed(1)}% vs. período anterior
+        </div>
+      )}
     </CardContent></Card>
   );
 }
