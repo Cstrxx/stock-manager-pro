@@ -128,7 +128,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </div>
         </div>
-        {trialing && (
+        {trialing && trialDays <= TRIAL_WARN_DAYS && (
+          <div className="bg-warning/15 border-b border-warning/30 px-4 py-2.5 text-sm text-warning-foreground flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-warning">
+              <AlertTriangle className="size-4" />
+              <span className="font-medium">
+                {trialDays === 0 ? "Seu teste grátis acaba hoje." : `Faltam apenas ${trialDays} dia${trialDays === 1 ? "" : "s"} do seu teste grátis.`}
+              </span>
+            </div>
+            <Link to="/billing" className="text-xs font-medium underline text-warning hover:opacity-80">
+              Fazer upgrade agora →
+            </Link>
+          </div>
+        )}
+        {trialing && trialDays > TRIAL_WARN_DAYS && (
           <div className="md:hidden bg-primary/10 border-b border-primary/20 px-4 py-2 text-xs text-primary flex items-center gap-1.5">
             <Sparkles className="size-3.5" /> Teste grátis · {trialDays} dia{trialDays === 1 ? "" : "s"} · <Link to="/billing" className="underline">ver plano</Link>
           </div>
