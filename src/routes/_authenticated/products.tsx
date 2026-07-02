@@ -214,7 +214,8 @@ function ProductDialog({ editing, onClose }: { editing: Product | null; onClose:
         if (error) throw error;
       } else {
         const company_id = await getCompanyId();
-        const { error } = await supabase.from("products").insert({ ...payload, company_id });
+        const initial = Math.max(1, Number(quantity));
+        const { error } = await supabase.from("products").insert({ ...payload, company_id, initial_quantity: initial });
         if (error) throw error;
       }
     },
