@@ -1,11 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Configurações globais
+export const TRIAL_DAYS = 14;
+export const TRIAL_WARN_DAYS = 3;
+export const LOW_STOCK_THRESHOLD_PERCENT = 75;
+
 export type Product = {
   id: string;
   name: string;
   category: string | null;
   quantity: number;
   min_stock: number;
+  initial_quantity: number;
   cost_price: number | null;
   sale_price: number | null;
   invoice_number: string | null;
@@ -36,8 +42,16 @@ export type Company = {
   subscription_status: string;
 };
 
-export function stockStatus(p: Pick<Product, "quantity" | "min_stock">) {
+export function soldPercent(p: Pick<Product, "quantity" | "initial_quantity">): number {
+  const initial = Math.max(1, p.initial_quantity ?? 0);
+  const sold = Math.max(0, initial - p.quantity);
+  return Math.min(100, (sold / initial) * 100);
+}
+
+export function stockStatus(p: Pick<Product, "quantity" | "min_stock" | "initial_quantity">) {
   if (p.quantity <= 0) return "out" as const;
+  const pct = soldPercent(p);
+  if (pct >= LOW_STOCK_THRESHOLD_PERCENT) return "low" as const;
   if (p.quantity <= p.min_stock) return "low" as const;
   return "ok" as const;
 }
@@ -56,4 +70,10 @@ export function formatBRL(value: number | null | undefined): string {
 export function daysLeft(iso: string): number {
   const diff = new Date(iso).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+export function trialExpired(company: Pick<Company, "trial_ends_at" | "subscription_status"> | null | undefined): boolean {
+  if (!company) return false;
+  if (company.subscription_status !== "trialing") return false;
+  return new Date(company.trial_ends_at).getTime() <= Date.now();
 }
