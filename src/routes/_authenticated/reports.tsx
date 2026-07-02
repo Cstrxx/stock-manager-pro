@@ -32,7 +32,7 @@ function ReportsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, category, quantity, min_stock, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at");
+        .select("id, name, category, quantity, min_stock, initial_quantity, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at");
       return (data ?? []) as Product[];
     },
   });
