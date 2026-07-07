@@ -15,12 +15,16 @@ function AlertsPage() {
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const { data } = await supabase.from("products").select("*").order("name");
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, category, quantity, min_stock, initial_quantity, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at")
+        .order("name");
       return (data ?? []) as Product[];
     },
   });
 
   const out = products.filter((p) => stockStatus(p) === "out");
+  const critical = products.filter((p) => stockStatus(p) === "critical");
   const low = products.filter((p) => stockStatus(p) === "low");
 
   return (
