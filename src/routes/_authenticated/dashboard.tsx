@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, XCircle, ArrowLeftRight, Clock, DollarSign, PackageX } from "lucide-react";
-import { stockStatus, formatBRL, remainingPercent, type Product, type Movement } from "@/lib/inventory";
+import { Package, AlertTriangle, XCircle, ArrowLeftRight, Clock, DollarSign } from "lucide-react";
+import { stockStatus, formatBRL, type Product, type Movement } from "@/lib/inventory";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 
@@ -37,17 +37,14 @@ function Dashboard() {
   });
 
   const stats = useMemo(() => {
-    let totalItems = 0, low = 0, critical = 0, out = 0;
-    const alerts: Product[] = [];
+    let totalItems = 0, low = 0, out = 0;
     for (const p of products) {
       totalItems += p.quantity;
       const s = stockStatus(p);
-      if (s === "critical") { critical++; alerts.push(p); }
-      else if (s === "low") { low++; alerts.push(p); }
-      else if (s === "out") { out++; alerts.push(p); }
+      if (s === "low") low++;
+      else if (s === "out") out++;
     }
-    alerts.sort((a, b) => remainingPercent(a) - remainingPercent(b));
-    return { totalItems, low, critical, out, alerts: alerts.slice(0, 8) };
+    return { totalItems, low, out };
   }, [products]);
 
   // 30-day revenue
@@ -82,56 +79,13 @@ function Dashboard() {
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Produtos" value={products.length.toLocaleString("pt-BR")} icon={Package} />
         <StatCard label="Itens em estoque" value={stats.totalItems.toLocaleString("pt-BR")} icon={ArrowLeftRight} accent />
         <StatCard label="Receita (30d)" value={formatBRL(revenue)} icon={DollarSign} accent />
         <StatCard label="Estoque baixo" value={stats.low.toLocaleString("pt-BR")} icon={AlertTriangle} tone="warning" />
-        <StatCard label="Crítico (≤10%)" value={stats.critical.toLocaleString("pt-BR")} icon={XCircle} tone="danger" />
-        <StatCard label="Esgotados" value={stats.out.toLocaleString("pt-BR")} icon={PackageX} tone="muted" />
+        <StatCard label="Esgotados" value={stats.out.toLocaleString("pt-BR")} icon={XCircle} tone="danger" />
       </div>
-
-      {stats.alerts.length > 0 && (
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="size-4 text-warning" /> Produtos precisando de reposição
-            </CardTitle>
-            <Link to="/alerts" className="text-xs text-primary hover:underline">Ver todos →</Link>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ul className="divide-y divide-border">
-              {stats.alerts.map((p) => {
-                const s = stockStatus(p);
-                const pct = Math.round(remainingPercent(p));
-                return (
-                  <Link key={p.id} to="/products" className="block hover:bg-accent/30 transition-colors -mx-2 px-2 rounded">
-                    <li className="py-2.5 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex items-center gap-2.5">
-                        <span className={`size-2 rounded-full shrink-0 ${
-                          s === "out" ? "bg-muted-foreground" : s === "critical" ? "bg-destructive" : "bg-warning"
-                        }`} />
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{p.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {p.category ?? "Sem categoria"} · restam {pct}% do ciclo
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-sm tabular-nums shrink-0 text-right">
-                        <span className={s === "out" ? "text-muted-foreground" : s === "critical" ? "text-destructive font-medium" : "text-warning font-medium"}>
-                          {p.quantity}
-                        </span>
-                        <span className="text-muted-foreground"> / {p.initial_quantity}</span>
-                      </div>
-                    </li>
-                  </Link>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>
@@ -172,13 +126,11 @@ function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger" | "muted" }) {
+function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger" }) {
   const toneClass = tone === "warning"
     ? "text-warning"
     : tone === "danger"
     ? "text-destructive"
-    : tone === "muted"
-    ? "text-muted-foreground"
     : accent
     ? "text-primary"
     : "text-foreground";

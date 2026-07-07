@@ -53,60 +53,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notifications: {
-        Row: {
-          company_id: string
-          created_at: string
-          id: string
-          message: string
-          percent_remaining: number | null
-          product_id: string | null
-          quantity_remaining: number | null
-          read_at: string | null
-          title: string
-          type: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          id?: string
-          message: string
-          percent_remaining?: number | null
-          product_id?: string | null
-          quantity_remaining?: number | null
-          read_at?: string | null
-          title: string
-          type: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          id?: string
-          message?: string
-          percent_remaining?: number | null
-          product_id?: string | null
-          quantity_remaining?: number | null
-          read_at?: string | null
-          title?: string
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       partners: {
         Row: {
           address: string | null

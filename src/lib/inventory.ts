@@ -48,20 +48,12 @@ export function soldPercent(p: Pick<Product, "quantity" | "initial_quantity">): 
   return Math.min(100, (sold / initial) * 100);
 }
 
-export function remainingPercent(p: Pick<Product, "quantity" | "initial_quantity">): number {
-  const initial = Math.max(1, p.initial_quantity ?? 0);
-  return Math.max(0, Math.min(100, (p.quantity / initial) * 100));
-}
-
-export type StockStatus = "ok" | "low" | "critical" | "out";
-
-export function stockStatus(p: Pick<Product, "quantity" | "min_stock" | "initial_quantity">): StockStatus {
-  if (p.quantity <= 0) return "out";
-  const remaining = remainingPercent(p);
-  if (remaining <= 10) return "critical";
-  if (remaining <= 25) return "low";
-  if (p.quantity <= p.min_stock) return "low";
-  return "ok";
+export function stockStatus(p: Pick<Product, "quantity" | "min_stock" | "initial_quantity">) {
+  if (p.quantity <= 0) return "out" as const;
+  const pct = soldPercent(p);
+  if (pct >= LOW_STOCK_THRESHOLD_PERCENT) return "low" as const;
+  if (p.quantity <= p.min_stock) return "low" as const;
+  return "ok" as const;
 }
 
 export async function getCompanyId(): Promise<string> {

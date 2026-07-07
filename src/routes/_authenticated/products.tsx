@@ -117,8 +117,7 @@ function ProductsPage() {
                     <TableCell>
                       {s === "ok" && <Badge className="bg-primary/15 text-primary border-primary/20">Em estoque</Badge>}
                       {s === "low" && <Badge className="bg-warning/15 text-warning border-warning/20">Baixo</Badge>}
-                      {s === "critical" && <Badge className="bg-destructive/15 text-destructive border-destructive/30">Crítico</Badge>}
-                      {s === "out" && <Badge className="bg-muted text-muted-foreground border-border">Esgotado</Badge>}
+                      {s === "out" && <Badge className="bg-destructive/15 text-destructive border-destructive/20">Esgotado</Badge>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{p.sale_price ? formatBRL(Number(p.sale_price)) : "—"}</TableCell>
                     <TableCell>
