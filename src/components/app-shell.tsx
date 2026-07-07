@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
+import { NotificationsBell } from "@/components/notifications-bell";
 import type { ReactNode } from "react";
 
 const nav = [
