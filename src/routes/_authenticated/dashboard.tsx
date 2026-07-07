@@ -172,11 +172,13 @@ function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger" }) {
+function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger" | "muted" }) {
   const toneClass = tone === "warning"
     ? "text-warning"
     : tone === "danger"
     ? "text-destructive"
+    : tone === "muted"
+    ? "text-muted-foreground"
     : accent
     ? "text-primary"
     : "text-foreground";
