@@ -15,12 +15,16 @@ function AlertsPage() {
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const { data } = await supabase.from("products").select("*").order("name");
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, category, quantity, min_stock, initial_quantity, cost_price, sale_price, invoice_number, invoice_file_path, created_at, updated_at")
+        .order("name");
       return (data ?? []) as Product[];
     },
   });
 
   const out = products.filter((p) => stockStatus(p) === "out");
+  const critical = products.filter((p) => stockStatus(p) === "critical");
   const low = products.filter((p) => stockStatus(p) === "low");
 
   return (
@@ -30,14 +34,14 @@ function AlertsPage() {
         <p className="text-sm text-muted-foreground">Produtos que precisam de reposição.</p>
       </header>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base flex items-center gap-2"><XCircle className="size-4 text-destructive" /> Esgotados</CardTitle>
-            <Badge variant="outline">{out.length}</Badge>
+            <CardTitle className="text-base flex items-center gap-2"><XCircle className="size-4 text-destructive" /> Crítico (≤10%)</CardTitle>
+            <Badge variant="outline">{critical.length}</Badge>
           </CardHeader>
           <CardContent>
-            <AlertList items={out} empty="Nenhum produto esgotado." />
+            <AlertList items={critical} empty="Nenhum item crítico." />
           </CardContent>
         </Card>
         <Card>
@@ -49,9 +53,18 @@ function AlertsPage() {
             <AlertList items={low} empty="Nenhum item com estoque baixo." />
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><XCircle className="size-4 text-muted-foreground" /> Esgotados</CardTitle>
+            <Badge variant="outline">{out.length}</Badge>
+          </CardHeader>
+          <CardContent>
+            <AlertList items={out} empty="Nenhum produto esgotado." />
+          </CardContent>
+        </Card>
       </div>
 
-      {out.length === 0 && low.length === 0 && (
+      {out.length === 0 && low.length === 0 && critical.length === 0 && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CheckCircle2 className="size-4 text-primary" />
           Tudo certo com o seu estoque.

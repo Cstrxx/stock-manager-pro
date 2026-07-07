@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
+import { NotificationsBell } from "@/components/notifications-bell";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -114,7 +115,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <span className="font-semibold">Estoq</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+          <div className="flex items-center gap-1">
+            <NotificationsBell />
+            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+          </div>
+        </div>
+        <div className="hidden md:flex items-center justify-end px-6 py-3 border-b border-border bg-background/50">
+          <NotificationsBell />
         </div>
         <div className="md:hidden border-b border-border bg-sidebar overflow-x-auto">
           <div className="flex gap-1 px-2 py-2">
