@@ -64,10 +64,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="size-8 rounded-md grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
             <Boxes className="size-4 text-primary-foreground" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="font-semibold tracking-tight leading-none">Estoq</div>
             <div className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{company?.name ?? "—"}</div>
           </div>
+          <NotificationsBell />
         </div>
         <nav className="px-3 flex-1 space-y-1">
           {nav.map(({ to, label, icon: Icon }) => {
