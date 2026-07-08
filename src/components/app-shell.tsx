@@ -116,7 +116,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <span className="font-semibold">Estoq</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+          <div className="flex items-center gap-1">
+            <NotificationsBell />
+            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+          </div>
         </div>
         <div className="md:hidden border-b border-border bg-sidebar overflow-x-auto">
           <div className="flex gap-1 px-2 py-2">
