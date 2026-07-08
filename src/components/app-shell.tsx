@@ -3,6 +3,7 @@ import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, C
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
 import type { ReactNode } from "react";
 
@@ -63,10 +64,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="size-8 rounded-md grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
             <Boxes className="size-4 text-primary-foreground" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="font-semibold tracking-tight leading-none">Estoq</div>
             <div className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{company?.name ?? "—"}</div>
           </div>
+          <NotificationsBell />
         </div>
         <nav className="px-3 flex-1 space-y-1">
           {nav.map(({ to, label, icon: Icon }) => {
@@ -114,7 +116,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <span className="font-semibold">Estoq</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+          <div className="flex items-center gap-1">
+            <NotificationsBell />
+            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
+          </div>
         </div>
         <div className="md:hidden border-b border-border bg-sidebar overflow-x-auto">
           <div className="flex gap-1 px-2 py-2">
