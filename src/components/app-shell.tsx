@@ -3,6 +3,7 @@ import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, C
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
 import type { ReactNode } from "react";
 
