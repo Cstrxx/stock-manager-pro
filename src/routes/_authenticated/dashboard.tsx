@@ -1,9 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, XCircle, ArrowLeftRight, Clock, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, AlertTriangle, XCircle, ArrowLeftRight, Clock, DollarSign, Plus, ArrowRight } from "lucide-react";
 import { stockStatus, formatBRL, type Product, type Movement } from "@/lib/inventory";
+import { Badge } from "@/components/ui/badge";
+import { useMemo } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 
