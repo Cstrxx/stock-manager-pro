@@ -67,9 +67,16 @@ function ProductsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q) || (p.category ?? "").toLowerCase().includes(q));
-  }, [products, search]);
+    let list = products;
+    if (statusFilter === "low" || statusFilter === "out") {
+      list = list.filter((p) => stockStatus(p) === statusFilter);
+    }
+    if (q) {
+      list = list.filter((p) => p.name.toLowerCase().includes(q) || (p.category ?? "").toLowerCase().includes(q));
+    }
+    return list;
+  }, [products, search, statusFilter]);
+
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
