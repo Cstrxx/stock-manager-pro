@@ -99,10 +99,29 @@ function ProductsPage() {
         </Dialog>
       </header>
 
-      <div className="relative max-w-sm">
-        <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1 min-w-[240px]">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+        </div>
+        {(statusFilter === "low" || statusFilter === "out") && (
+          <Badge variant="outline" className="gap-1.5 py-1 px-2.5">
+            Filtro: {statusFilter === "low" ? "Estoque baixo" : "Esgotados"}
+            <button
+              type="button"
+              aria-label="Limpar filtro"
+              onClick={() => navigate({ search: { filter: "" } })}
+              className="hover:text-foreground"
+            >
+              <X className="size-3" />
+            </button>
+          </Badge>
+        )}
+        {(statusFilter || search) && (
+          <span className="text-xs text-muted-foreground">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</span>
+        )}
       </div>
+
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
