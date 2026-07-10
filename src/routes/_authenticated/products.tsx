@@ -30,10 +30,13 @@ const PAGE_SIZE = 50;
 
 function ProductsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate({ from: "/products" });
+  const { filter: statusFilter } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
+
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
