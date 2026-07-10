@@ -146,7 +146,7 @@ function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger" }) {
+function StatCard({ label, value, icon: Icon, accent, tone, to, search }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger"; to?: string; search?: Record<string, string> }) {
   const toneClass = tone === "warning"
     ? "text-warning"
     : tone === "danger"
@@ -154,15 +154,24 @@ function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; v
     : accent
     ? "text-primary"
     : "text-foreground";
-  return (
-    <Card style={{ boxShadow: "var(--shadow-card)" }}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-          <Icon className={`size-4 ${toneClass}`} />
-        </div>
-        <div className={`mt-3 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
-      </CardContent>
-    </Card>
+  const inner = (
+    <CardContent className="p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+        <Icon className={`size-4 ${toneClass}`} />
+      </div>
+      <div className={`mt-3 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
+    </CardContent>
   );
+  if (to) {
+    return (
+      <Link to={to} search={search as never} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Card style={{ boxShadow: "var(--shadow-card)" }} className="hover:border-primary/40 hover:-translate-y-0.5 transition-all cursor-pointer">
+          {inner}
+        </Card>
+      </Link>
+    );
+  }
+  return <Card style={{ boxShadow: "var(--shadow-card)" }}>{inner}</Card>;
 }
+
