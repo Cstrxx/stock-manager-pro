@@ -83,24 +83,40 @@ function Dashboard() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Produtos" value={products.length.toLocaleString("pt-BR")} icon={Package} />
-        <StatCard label="Itens em estoque" value={stats.totalItems.toLocaleString("pt-BR")} icon={ArrowLeftRight} accent />
-        <StatCard label="Receita (30d)" value={formatBRL(revenue)} icon={DollarSign} accent />
-        <StatCard label="Estoque baixo" value={stats.low.toLocaleString("pt-BR")} icon={AlertTriangle} tone="warning" />
-        <StatCard label="Esgotados" value={stats.out.toLocaleString("pt-BR")} icon={XCircle} tone="danger" />
+        <StatCard label="Produtos" value={products.length.toLocaleString("pt-BR")} icon={Package} to="/products" />
+        <StatCard label="Itens em estoque" value={stats.totalItems.toLocaleString("pt-BR")} icon={ArrowLeftRight} accent to="/products" />
+        <StatCard label="Receita (30d)" value={formatBRL(revenue)} icon={DollarSign} accent to="/faturamento" />
+        <StatCard label="Estoque baixo" value={stats.low.toLocaleString("pt-BR")} icon={AlertTriangle} tone="warning" to="/products" search={{ filter: "low" }} />
+        <StatCard label="Esgotados" value={stats.out.toLocaleString("pt-BR")} icon={XCircle} tone="danger" to="/products" search={{ filter: "out" }} />
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Últimas movimentações</CardTitle>
+          {movements.length > 0 && (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/movements">Ver todas <ArrowRight className="size-3.5" /></Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {movements.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma movimentação registrada ainda.</p>
+            <div className="py-10 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda.</p>
+              {products.length === 0 ? (
+                <Button asChild size="sm"><Link to="/products"><Plus className="size-4" /> Cadastrar primeiro produto</Link></Button>
+              ) : (
+                <Button asChild size="sm" variant="outline"><Link to="/movements"><Plus className="size-4" /> Registrar movimentação</Link></Button>
+              )}
+            </div>
           ) : (
             <div className="divide-y divide-border">
               {movements.map((m) => (
-                <div key={m.id} className="flex items-center justify-between py-3 gap-3">
+                <Link
+                  key={m.id}
+                  to="/movements"
+                  className="flex items-center justify-between py-3 gap-3 -mx-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                >
                   <div className="flex items-center gap-3 min-w-0">
                     <Badge className={m.type === "in" ? "bg-primary/15 text-primary border-primary/20" : "bg-destructive/15 text-destructive border-destructive/30"}>
                       {m.type === "in" ? "Entrada" : "Saída"}
@@ -119,12 +135,13 @@ function Dashboard() {
                       <div className="text-xs text-muted-foreground font-normal">{formatBRL(Number(m.total_amount))}</div>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
     </div>
   );
 }
