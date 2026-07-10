@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,14 +11,20 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
 import { stockStatus, getCompanyId, formatBRL, type Product } from "@/lib/inventory";
 
+const searchSchema = z.object({
+  filter: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/_authenticated/products")({
   ssr: false,
+  validateSearch: zodValidator(searchSchema),
   component: ProductsPage,
 });
+
 
 const PAGE_SIZE = 50;
 
