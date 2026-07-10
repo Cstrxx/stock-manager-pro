@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,23 +11,32 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
 import { stockStatus, getCompanyId, formatBRL, type Product } from "@/lib/inventory";
 
+const searchSchema = z.object({
+  filter: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/_authenticated/products")({
   ssr: false,
+  validateSearch: zodValidator(searchSchema),
   component: ProductsPage,
 });
+
 
 const PAGE_SIZE = 50;
 
 function ProductsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate({ from: "/products" });
+  const { filter: statusFilter } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
+
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -56,9 +67,16 @@ function ProductsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q) || (p.category ?? "").toLowerCase().includes(q));
-  }, [products, search]);
+    let list = products;
+    if (statusFilter === "low" || statusFilter === "out") {
+      list = list.filter((p) => stockStatus(p) === statusFilter);
+    }
+    if (q) {
+      list = list.filter((p) => p.name.toLowerCase().includes(q) || (p.category ?? "").toLowerCase().includes(q));
+    }
+    return list;
+  }, [products, search, statusFilter]);
+
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -81,10 +99,29 @@ function ProductsPage() {
         </Dialog>
       </header>
 
-      <div className="relative max-w-sm">
-        <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1 min-w-[240px]">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+        </div>
+        {(statusFilter === "low" || statusFilter === "out") && (
+          <Badge variant="outline" className="gap-1.5 py-1 px-2.5">
+            Filtro: {statusFilter === "low" ? "Estoque baixo" : "Esgotados"}
+            <button
+              type="button"
+              aria-label="Limpar filtro"
+              onClick={() => navigate({ search: { filter: "" } })}
+              className="hover:text-foreground"
+            >
+              <X className="size-3" />
+            </button>
+          </Badge>
+        )}
+        {(statusFilter || search) && (
+          <span className="text-xs text-muted-foreground">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</span>
+        )}
       </div>
+
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">

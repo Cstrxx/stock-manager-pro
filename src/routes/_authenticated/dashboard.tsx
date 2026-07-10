@@ -1,11 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, XCircle, ArrowLeftRight, Clock, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, AlertTriangle, XCircle, ArrowLeftRight, Clock, DollarSign, Plus, ArrowRight } from "lucide-react";
 import { stockStatus, formatBRL, type Product, type Movement } from "@/lib/inventory";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
+
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   ssr: false,
@@ -80,24 +83,40 @@ function Dashboard() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Produtos" value={products.length.toLocaleString("pt-BR")} icon={Package} />
-        <StatCard label="Itens em estoque" value={stats.totalItems.toLocaleString("pt-BR")} icon={ArrowLeftRight} accent />
-        <StatCard label="Receita (30d)" value={formatBRL(revenue)} icon={DollarSign} accent />
-        <StatCard label="Estoque baixo" value={stats.low.toLocaleString("pt-BR")} icon={AlertTriangle} tone="warning" />
-        <StatCard label="Esgotados" value={stats.out.toLocaleString("pt-BR")} icon={XCircle} tone="danger" />
+        <StatCard label="Produtos" value={products.length.toLocaleString("pt-BR")} icon={Package} to="/products" />
+        <StatCard label="Itens em estoque" value={stats.totalItems.toLocaleString("pt-BR")} icon={ArrowLeftRight} accent to="/products" />
+        <StatCard label="Receita (30d)" value={formatBRL(revenue)} icon={DollarSign} accent to="/faturamento" />
+        <StatCard label="Estoque baixo" value={stats.low.toLocaleString("pt-BR")} icon={AlertTriangle} tone="warning" to="/products" search={{ filter: "low" }} />
+        <StatCard label="Esgotados" value={stats.out.toLocaleString("pt-BR")} icon={XCircle} tone="danger" to="/products" search={{ filter: "out" }} />
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Últimas movimentações</CardTitle>
+          {movements.length > 0 && (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/movements">Ver todas <ArrowRight className="size-3.5" /></Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {movements.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma movimentação registrada ainda.</p>
+            <div className="py-10 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda.</p>
+              {products.length === 0 ? (
+                <Button asChild size="sm"><Link to="/products"><Plus className="size-4" /> Cadastrar primeiro produto</Link></Button>
+              ) : (
+                <Button asChild size="sm" variant="outline"><Link to="/movements"><Plus className="size-4" /> Registrar movimentação</Link></Button>
+              )}
+            </div>
           ) : (
             <div className="divide-y divide-border">
               {movements.map((m) => (
-                <div key={m.id} className="flex items-center justify-between py-3 gap-3">
+                <Link
+                  key={m.id}
+                  to="/movements"
+                  className="flex items-center justify-between py-3 gap-3 -mx-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                >
                   <div className="flex items-center gap-3 min-w-0">
                     <Badge className={m.type === "in" ? "bg-primary/15 text-primary border-primary/20" : "bg-destructive/15 text-destructive border-destructive/30"}>
                       {m.type === "in" ? "Entrada" : "Saída"}
@@ -116,17 +135,18 @@ function Dashboard() {
                       <div className="text-xs text-muted-foreground font-normal">{formatBRL(Number(m.total_amount))}</div>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
     </div>
   );
 }
 
-function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger" }) {
+function StatCard({ label, value, icon: Icon, accent, tone, to, search }: { label: string; value: string; icon: any; accent?: boolean; tone?: "warning" | "danger"; to?: string; search?: Record<string, string> }) {
   const toneClass = tone === "warning"
     ? "text-warning"
     : tone === "danger"
@@ -134,15 +154,24 @@ function StatCard({ label, value, icon: Icon, accent, tone }: { label: string; v
     : accent
     ? "text-primary"
     : "text-foreground";
-  return (
-    <Card style={{ boxShadow: "var(--shadow-card)" }}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-          <Icon className={`size-4 ${toneClass}`} />
-        </div>
-        <div className={`mt-3 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
-      </CardContent>
-    </Card>
+  const inner = (
+    <CardContent className="p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+        <Icon className={`size-4 ${toneClass}`} />
+      </div>
+      <div className={`mt-3 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
+    </CardContent>
   );
+  if (to) {
+    return (
+      <Link to={to} search={search as never} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Card style={{ boxShadow: "var(--shadow-card)" }} className="hover:border-primary/40 hover:-translate-y-0.5 transition-all cursor-pointer">
+          {inner}
+        </Card>
+      </Link>
+    );
+  }
+  return <Card style={{ boxShadow: "var(--shadow-card)" }}>{inner}</Card>;
 }
+
