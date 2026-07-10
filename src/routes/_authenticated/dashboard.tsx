@@ -8,8 +8,7 @@ import { stockStatus, formatBRL, type Product, type Movement } from "@/lib/inven
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { useMemo } from "react";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   ssr: false,
