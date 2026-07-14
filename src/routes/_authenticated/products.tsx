@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
 import { stockStatus, getCompanyId, formatBRL, type Product } from "@/lib/inventory";
@@ -33,7 +33,9 @@ function ProductsPage() {
   const navigate = useNavigate({ from: "/products" });
   const { filter: statusFilter } = Route.useSearch();
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [deferredSearch, statusFilter]);
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -66,7 +68,7 @@ function ProductsPage() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = deferredSearch.trim().toLowerCase();
     let list = products;
     if (statusFilter === "low" || statusFilter === "out") {
       list = list.filter((p) => stockStatus(p) === statusFilter);
@@ -75,7 +77,7 @@ function ProductsPage() {
       list = list.filter((p) => p.name.toLowerCase().includes(q) || (p.category ?? "").toLowerCase().includes(q));
     }
     return list;
-  }, [products, search, statusFilter]);
+  }, [products, deferredSearch, statusFilter]);
 
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -102,7 +104,7 @@ function ProductsPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[240px]">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+          <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         {(statusFilter === "low" || statusFilter === "out") && (
           <Badge variant="outline" className="gap-1.5 py-1 px-2.5">
