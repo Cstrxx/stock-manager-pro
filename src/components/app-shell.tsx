@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { setTrialLocked, TRIAL_BLOCKED_EVENT, TRIAL_BLOCKED_MESSAGE } from "@/lib/trial-lock";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -55,6 +57,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const trialing = company?.subscription_status === "trialing";
   const trialDays = company ? daysLeft(company.trial_ends_at) : 0;
+  const trialExpired = !!company && trialing && new Date(company.trial_ends_at).getTime() <= Date.now();
+  const [blockedOpen, setBlockedOpen] = useState(false);
+
+  useEffect(() => {
+    setTrialLocked(trialExpired);
+  }, [trialExpired]);
+
+  useEffect(() => {
+    const onBlocked = () => setBlockedOpen(true);
+    window.addEventListener(TRIAL_BLOCKED_EVENT, onBlocked);
+    return () => window.removeEventListener(TRIAL_BLOCKED_EVENT, onBlocked);
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -128,7 +142,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </div>
         </div>
-        {trialing && trialDays <= TRIAL_WARN_DAYS && (
+        {trialExpired && (
+          <div className="sticky top-0 z-30 bg-destructive/15 border-b border-destructive/40 px-4 py-2.5 text-sm flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="size-4" />
+              <span className="font-medium">Seu período de teste terminou. Você pode consultar seus dados, mas novas alterações estão bloqueadas.</span>
+            </div>
+            <Button size="sm" asChild>
+              <Link to="/billing">Fazer upgrade</Link>
+            </Button>
+          </div>
+        )}
+        {trialing && !trialExpired && trialDays <= TRIAL_WARN_DAYS && (
           <div className="bg-warning/15 border-b border-warning/30 px-4 py-2.5 text-sm text-warning-foreground flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 text-warning">
               <AlertTriangle className="size-4" />
@@ -141,12 +166,28 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           </div>
         )}
-        {trialing && trialDays > TRIAL_WARN_DAYS && (
+        {trialing && !trialExpired && trialDays > TRIAL_WARN_DAYS && (
           <div className="md:hidden bg-primary/10 border-b border-primary/20 px-4 py-2 text-xs text-primary flex items-center gap-1.5">
             <Sparkles className="size-3.5" /> Teste grátis · {trialDays} dia{trialDays === 1 ? "" : "s"} · <Link to="/billing" className="underline">ver plano</Link>
           </div>
         )}
         <div className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">{children}</div>
+        <Dialog open={blockedOpen} onOpenChange={setBlockedOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{TRIAL_BLOCKED_MESSAGE}</DialogTitle>
+              <DialogDescription>
+                A leitura dos seus dados continua liberada. Para voltar a cadastrar, editar ou excluir, assine o Plano Completo.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setBlockedOpen(false)}>Fechar</Button>
+              <Button asChild onClick={() => setBlockedOpen(false)}>
+                <Link to="/billing">Ver plano</Link>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

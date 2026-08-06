@@ -51,6 +51,7 @@ import {
   onlyDigits,
 } from "@/lib/cpf-cnpj";
 import { KIND_LABEL, type Partner, type PartnerKind } from "@/lib/partners";
+import { assertWriteAllowed } from "@/lib/trial-lock";
 
 export const Route = createFileRoute("/_authenticated/partners")({
   ssr: false,
@@ -81,6 +82,7 @@ function PartnersPage() {
 
   const del = useMutation({
     mutationFn: async (p: Partner) => {
+      assertWriteAllowed();
       const { error } = await supabase.from("partners").delete().eq("id", p.id);
       if (error) throw error;
     },
@@ -342,6 +344,7 @@ function PartnerDialog({
 
   const save = useMutation({
     mutationFn: async () => {
+      assertWriteAllowed();
       const trimmed = name.trim();
       if (!trimmed) throw new Error("Informe o nome / razão social");
       if (docDigits && docValid === false) throw new Error("CPF/CNPJ inválido");
