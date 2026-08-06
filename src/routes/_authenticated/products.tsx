@@ -14,6 +14,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink, X } from "lucide-react";
 import { toast } from "sonner";
 import { stockStatus, getCompanyId, formatBRL, type Product } from "@/lib/inventory";
+import { assertWriteAllowed } from "@/lib/trial-lock";
 
 const searchSchema = z.object({
   filter: fallback(z.string(), "").default(""),
@@ -54,6 +55,7 @@ function ProductsPage() {
 
   const del = useMutation({
     mutationFn: async (p: Product) => {
+      assertWriteAllowed();
       if (p.invoice_file_path) {
         await supabase.storage.from("invoices").remove([p.invoice_file_path]);
       }
@@ -220,6 +222,7 @@ function ProductDialog({ editing, onClose }: { editing: Product | null; onClose:
 
   const save = useMutation({
     mutationFn: async () => {
+      assertWriteAllowed();
       const trimmed = name.trim();
       if (!trimmed) throw new Error("Informe o nome do produto");
 

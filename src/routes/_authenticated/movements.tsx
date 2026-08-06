@@ -17,6 +17,7 @@ import { getCompanyId, formatBRL, type Movement, type Product } from "@/lib/inve
 import { formatDoc, onlyDigits } from "@/lib/cpf-cnpj";
 import type { Partner } from "@/lib/partners";
 import { Link } from "@tanstack/react-router";
+import { assertWriteAllowed } from "@/lib/trial-lock";
 
 
 export const Route = createFileRoute("/_authenticated/movements")({
@@ -132,6 +133,7 @@ function EntryDialog({ onClose }: { onClose: () => void }) {
 
   const save = useMutation({
     mutationFn: async () => {
+      assertWriteAllowed();
       if (!productId) throw new Error("Selecione um produto");
       if (quantity <= 0) throw new Error("Quantidade inválida");
       const company_id = await getCompanyId();
@@ -368,6 +370,7 @@ function SaleDialog({ onClose }: { onClose: () => void }) {
 
   const save = useMutation({
     mutationFn: async () => {
+      assertWriteAllowed();
       if (items.length === 0) throw new Error("Adicione ao menos um produto");
       const company_id = await getCompanyId();
       const { data: u } = await supabase.auth.getUser();
