@@ -4,24 +4,52 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Sistema de botões do ESTOQ.
+ *
+ * Todos os variants compartilham a mesma métrica: altura, raio, gap de ícone,
+ * peso tipográfico e curva de motion. A diferença entre eles é apenas a
+ * superfície — nunca a forma.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  [
+    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap",
+    "rounded-md text-[13px] font-medium leading-none cursor-pointer select-none",
+    // Motion: apenas propriedades aceleradas por GPU.
+    "transition-[background-color,border-color,color,opacity,transform] duration-150 ease-out",
+    "active:scale-[0.985]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed",
+    "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  ],
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        /** Ação primária. Único uso de verde sólido na interface. */
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        /** Ação secundária — superfície neutra, hairline. */
+        secondary:
+          "bg-secondary text-secondary-foreground border border-border hover:bg-secondary/70 hover:border-border-strong",
+        /** Contorno — para barras de ferramentas e filtros. */
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+          "border border-border bg-transparent text-foreground hover:bg-secondary/60 hover:border-border-strong",
+        /** Sem superfície — ações terciárias e itens de linha. */
+        ghost: "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
+        /** Destrutivo. */
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        /** Alias semântico de `destructive`. */
+        danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        /** Destrutivo discreto — exclusão dentro de menus e linhas. */
+        "danger-ghost": "text-destructive hover:bg-destructive/12 hover:text-destructive",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-9 px-3.5",
+        sm: "h-8 px-3 text-xs",
+        lg: "h-10 px-5 text-sm",
+        icon: "h-9 w-9 p-0",
+        "icon-sm": "h-8 w-8 p-0 [&_svg]:size-3.5",
+        "icon-lg": "h-10 w-10 p-0",
       },
     },
     defaultVariants: {

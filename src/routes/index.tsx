@@ -8,6 +8,7 @@ import {
   PlayCircle, CalendarDays, Mail, MapPin, Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EstoqLogo } from "@/components/brand";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -138,10 +139,7 @@ function Header() {
     <header className="sticky top-0 z-50 border-b border-border/60 backdrop-blur-xl bg-background/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="size-8 rounded-md grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
-            <Boxes className="size-4 text-primary-foreground" />
-          </div>
-          <span className="font-semibold tracking-tight">Estoq</span>
+          <EstoqLogo />
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           {nav.map((n) => (
@@ -184,9 +182,7 @@ function Hero() {
           </div>
           <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] animate-fade-in">
             O controle inteligente do seu estoque{" "}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>
-              começa aqui.
-            </span>
+            <span className="text-primary">começa aqui.</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
             Uma plataforma completa para distribuidoras e pequenos negócios gerenciarem produtos, movimentações,
@@ -622,12 +618,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid lg:grid-cols-4 gap-10">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="size-8 rounded-md grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
-                <Boxes className="size-4 text-primary-foreground" />
-              </div>
-              <span className="font-semibold tracking-tight">Estoq</span>
-            </div>
+            <EstoqLogo />
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               Sistema profissional de gestão de estoque para distribuidoras e pequenos negócios.
             </p>

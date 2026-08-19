@@ -29,7 +29,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableActions,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PageHeader, PageToolbar } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Plus,
@@ -40,6 +52,8 @@ import {
   XCircle,
   Loader2,
   UserPlus,
+  MoreHorizontal,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getCompanyId } from "@/lib/inventory";
@@ -112,46 +126,57 @@ function PartnersPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clientes & Fornecedores</h1>
-          <p className="text-sm text-muted-foreground">
-            {partners.length} cadastro{partners.length === 1 ? "" : "s"}.
-          </p>
-        </div>
-        <Dialog
-          open={open}
-          onOpenChange={(o) => {
-            setOpen(o);
-            if (!o) setEditing(null);
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="size-4" /> Novo cadastro
-            </Button>
-          </DialogTrigger>
-          {open && (
-            <PartnerDialog
-              editing={editing}
-              existing={partners}
-              onClose={() => {
-                setOpen(false);
-                setEditing(null);
-              }}
-            />
-          )}
-        </Dialog>
-      </header>
+  const { confirm, confirmDialog } = useConfirm();
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+  async function requestDelete(p: Partner) {
+    const ok = await confirm({
+      title: `Remover "${p.name}"?`,
+      description:
+        "O cadastro deixa de aparecer nas listagens e nos seletores de movimentação. Esta ação não pode ser desfeita.",
+      confirmLabel: "Remover cadastro",
+    });
+    if (ok) del.mutate(p);
+  }
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Clientes & Fornecedores"
+        subtitle={`${partners.length} cadastro${partners.length === 1 ? "" : "s"}.`}
+        actions={
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o);
+              if (!o) setEditing(null);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus strokeWidth={1.75} /> Novo cadastro
+              </Button>
+            </DialogTrigger>
+            {open && (
+              <PartnerDialog
+                editing={editing}
+                existing={partners}
+                onClose={() => {
+                  setOpen(false);
+                  setEditing(null);
+                }}
+              />
+            )}
+          </Dialog>
+        }
+      />
+
+      <PageToolbar>
+        <div className="relative min-w-[240px] max-w-md flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-text-tertiary" strokeWidth={1.75} aria-hidden="true" />
           <Input
             placeholder="Buscar por nome ou CPF/CNPJ..."
-            className="pl-9"
+            className="pl-8"
+            aria-label="Buscar cadastro"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -160,7 +185,7 @@ function PartnersPage() {
           />
         </div>
         <Select value={kindFilter} onValueChange={(v) => setKindFilter(v as typeof kindFilter)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[170px]" aria-label="Filtrar por tipo">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -169,10 +194,15 @@ function PartnersPage() {
             <SelectItem value="supplier">Fornecedores</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        {(search || kindFilter !== "all") && (
+          <span className="text-xs tabular-nums text-text-tertiary">
+            {filtered.length} resultado{filtered.length === 1 ? "" : "s"}
+          </span>
+        )}
+      </PageToolbar>
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-hidden rounded-xl p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -181,67 +211,78 @@ function PartnersPage() {
                 <TableHead>CPF / CNPJ</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Cidade</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[52px]"><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                    Carregando...
-                  </TableCell>
-                </TableRow>
+                <SkeletonRows rows={8} cols={6} />
               ) : visible.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                    Nenhum cadastro encontrado.
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={6} className="h-auto border-0">
+                    <EmptyState
+                      icon={Users}
+                      title={search || kindFilter !== "all" ? "Nenhum cadastro encontrado" : "Nenhum cadastro ainda"}
+                      description={
+                        search || kindFilter !== "all"
+                          ? "Ajuste a busca ou o filtro para ver mais resultados."
+                          : "Cadastre clientes e fornecedores para vinculá-los às movimentações."
+                      }
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
                 visible.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      <div className="font-medium">{p.name}</div>
+                      <div className="font-medium text-foreground">{p.name}</div>
                       {p.fantasy_name && (
-                        <div className="text-xs text-muted-foreground">{p.fantasy_name}</div>
+                        <div className="mt-0.5 text-[11px] leading-tight text-text-tertiary">{p.fantasy_name}</div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant={p.kind === "customer" ? "info" : "neutral"}>
                         {KIND_LABEL[p.kind]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="tabular-nums text-sm">
-                      {p.cpf_cnpj ? formatDoc(p.cpf_cnpj) : "—"}
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {p.cpf_cnpj ? formatDoc(p.cpf_cnpj) : <span className="text-text-tertiary">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {p.email || p.phone || "—"}
+                    <TableCell className="text-muted-foreground">
+                      {p.email || p.phone || <span className="text-text-tertiary">—</span>}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {p.city ? `${p.city}${p.state ? ` / ${p.state}` : ""}` : "—"}
+                    <TableCell className="text-muted-foreground">
+                      {p.city ? `${p.city}${p.state ? ` / ${p.state}` : ""}` : <span className="text-text-tertiary">—</span>}
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditing(p);
-                            setOpen(true);
-                          }}
-                        >
-                          <Pencil className="size-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm(`Remover "${p.name}"?`)) del.mutate(p);
-                          }}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
+                      <TableActions>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon-sm" variant="ghost" aria-label={`Ações para ${p.name}`}>
+                              <MoreHorizontal strokeWidth={1.75} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                setEditing(p);
+                                setOpen(true);
+                              }}
+                            >
+                              <Pencil className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => { void requestDelete(p); }}
+                            >
+                              <Trash2 className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                              Remover
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableActions>
                     </TableCell>
                   </TableRow>
                 ))
@@ -252,8 +293,8 @@ function PartnersPage() {
       </Card>
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div>
+        <div className="flex items-center justify-between text-[13px] text-muted-foreground">
+          <div className="tabular-nums">
             Página {page + 1} de {pageCount}
           </div>
           <div className="flex gap-2">
@@ -271,6 +312,8 @@ function PartnersPage() {
           </div>
         </div>
       )}
+
+      {confirmDialog}
     </div>
   );
 }

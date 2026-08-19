@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/ui/page-header";
+import { useCompanyQuery } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,27 +28,17 @@ const FEATURES = [
 ];
 
 function BillingPage() {
-  const { data: company } = useQuery({
-    queryKey: ["company"],
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id, name, plan, trial_ends_at, subscription_status")
-        .maybeSingle();
-      return data as Company | null;
-    },
-  });
+  const { data: company } = useCompanyQuery();
 
   const trialing = company?.subscription_status === "trialing";
   const days = company ? daysLeft(company.trial_ends_at) : 0;
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Plano e assinatura</h1>
-        <p className="text-sm text-muted-foreground">Um único plano com tudo liberado.</p>
-      </header>
+      <PageHeader
+        title="Plano e assinatura"
+        subtitle="Um único plano com tudo liberado."
+      />
 
       {trialing && (
         <Card className="border-primary/30">
@@ -67,7 +59,7 @@ function BillingPage() {
         </Card>
       )}
 
-      <Card className="border-primary/40" style={{ boxShadow: "var(--shadow-glow)" }}>
+      <Card className="border-primary/30">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>

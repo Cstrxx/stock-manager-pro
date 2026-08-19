@@ -8,10 +8,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableActions,
+} from "@/components/ui/table";
+import { PageHeader, PageToolbar } from "@/components/ui/page-header";
+import { StatusBadge, stockTone } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Paperclip, FileText, ExternalLink, X, MoreHorizontal, Package } from "lucide-react";
 import { toast } from "sonner";
 import { stockStatus, getCompanyId, formatBRL, type Product } from "@/lib/inventory";
 import { assertWriteAllowed } from "@/lib/trial-lock";
@@ -39,6 +60,8 @@ function ProductsPage() {
   useEffect(() => { setPage(0); }, [deferredSearch, statusFilter]);
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const { confirm, confirmDialog } = useConfirm();
 
 
   const { data: products = [], isLoading } = useQuery({
@@ -85,53 +108,102 @@ function ProductsPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Produtos</h1>
-          <p className="text-sm text-muted-foreground">{products.length} item{products.length === 1 ? "" : "s"} cadastrado{products.length === 1 ? "" : "s"}.</p>
-        </div>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="size-4" /> Novo produto</Button>
-          </DialogTrigger>
-          <ProductDialog
-            editing={editing}
-            onClose={() => { setOpen(false); setEditing(null); }}
-          />
-        </Dialog>
-      </header>
+  const allVisibleSelected = visible.length > 0 && visible.every((p) => selected.has(p.id));
+  const someVisibleSelected = visible.some((p) => selected.has(p.id));
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1 min-w-[240px]">
-          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar produto..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+  function toggleAll(checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const p of visible) checked ? next.add(p.id) : next.delete(p.id);
+      return next;
+    });
+  }
+
+  function toggleOne(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }
+
+  async function requestDelete(p: Product) {
+    const ok = await confirm({
+      title: `Remover "${p.name}"?`,
+      description:
+        "O produto sai da listagem e o histórico de movimentações deixa de referenciá-lo. Esta ação não pode ser desfeita.",
+      confirmLabel: "Remover produto",
+    });
+    if (ok) del.mutate(p);
+  }
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Produtos"
+        subtitle={`${products.length} item${products.length === 1 ? "" : "s"} cadastrado${products.length === 1 ? "" : "s"}.`}
+        actions={
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button><Plus strokeWidth={1.75} /> Novo produto</Button>
+            </DialogTrigger>
+            <ProductDialog
+              editing={editing}
+              onClose={() => { setOpen(false); setEditing(null); }}
+            />
+          </Dialog>
+        }
+      />
+
+      <PageToolbar>
+        <div className="relative min-w-[240px] max-w-sm flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-text-tertiary" strokeWidth={1.75} aria-hidden="true" />
+          <Input placeholder="Buscar produto ou categoria..." className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Buscar produto" />
         </div>
         {(statusFilter === "low" || statusFilter === "out") && (
-          <Badge variant="outline" className="gap-1.5 py-1 px-2.5">
-            Filtro: {statusFilter === "low" ? "Estoque baixo" : "Esgotados"}
+          <Badge variant="outline" className="gap-1 py-1">
+            {statusFilter === "low" ? "Estoque baixo" : "Esgotados"}
             <button
               type="button"
               aria-label="Limpar filtro"
               onClick={() => navigate({ search: { filter: "" } })}
-              className="hover:text-foreground"
+              className="rounded-sm transition-colors duration-150 hover:text-foreground"
             >
-              <X className="size-3" />
+              <X className="size-3" strokeWidth={2} />
             </button>
           </Badge>
         )}
         {(statusFilter || search) && (
-          <span className="text-xs text-muted-foreground">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</span>
+          <span className="text-xs tabular-nums text-text-tertiary">
+            {filtered.length} resultado{filtered.length === 1 ? "" : "s"}
+          </span>
         )}
-      </div>
+        {selected.size > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {selected.size} selecionado{selected.size === 1 ? "" : "s"}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+              Limpar
+            </Button>
+          </div>
+        )}
+      </PageToolbar>
 
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-hidden rounded-xl p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>
+                  <Checkbox
+                    checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                    onCheckedChange={(c) => toggleAll(c === true)}
+                    aria-label="Selecionar todos os produtos da página"
+                    disabled={visible.length === 0}
+                  />
+                </TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead className="text-right">Qtd</TableHead>
@@ -139,38 +211,75 @@ function ProductsPage() {
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Preço venda</TableHead>
                 <TableHead>NF</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[52px]"><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">Carregando...</TableCell></TableRow>
+                <SkeletonRows rows={8} cols={9} />
               ) : visible.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">Nenhum produto encontrado.</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={9} className="h-auto border-0">
+                    <EmptyState
+                      icon={Package}
+                      title={search || statusFilter ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+                      description={
+                        search || statusFilter
+                          ? "Ajuste a busca ou remova o filtro para ver mais resultados."
+                          : "Cadastre o primeiro produto para começar a controlar seu estoque."
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
               ) : visible.map((p) => {
                 const s = stockStatus(p);
+                const isSelected = selected.has(p.id);
                 return (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.category ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{p.quantity}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{p.min_stock}</TableCell>
+                  <TableRow key={p.id} data-state={isSelected ? "selected" : undefined}>
                     <TableCell>
-                      {s === "ok" && <Badge className="bg-primary/15 text-primary border-primary/20">Em estoque</Badge>}
-                      {s === "low" && <Badge className="bg-warning/15 text-warning border-warning/20">Baixo</Badge>}
-                      {s === "out" && <Badge className="bg-destructive/15 text-destructive border-destructive/20">Esgotado</Badge>}
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(c) => toggleOne(p.id, c === true)}
+                        aria-label={`Selecionar ${p.name}`}
+                      />
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{p.sale_price ? formatBRL(Number(p.sale_price)) : "—"}</TableCell>
+                    <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.category ?? "—"}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{p.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums text-text-tertiary">{p.min_stock}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={stockTone(s)} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{p.sale_price ? formatBRL(Number(p.sale_price)) : <span className="text-text-tertiary">—</span>}</TableCell>
                     <TableCell>
                       {p.invoice_number || p.invoice_file_path ? (
                         <InvoiceLink number={p.invoice_number} path={p.invoice_file_path} />
-                      ) : <span className="text-muted-foreground text-xs">—</span>}
+                      ) : <span className="text-xs text-text-tertiary">—</span>}
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="size-3.5" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm(`Remover "${p.name}"?`)) del.mutate(p); }}><Trash2 className="size-3.5" /></Button>
-                      </div>
+                      <TableActions>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon-sm" variant="ghost" aria-label={`Ações para ${p.name}`}>
+                              <MoreHorizontal strokeWidth={1.75} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem onSelect={() => { setEditing(p); setOpen(true); }}>
+                              <Pencil className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => { void requestDelete(p); }}
+                            >
+                              <Trash2 className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                              Remover
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableActions>
                     </TableCell>
                   </TableRow>
                 );
@@ -181,14 +290,16 @@ function ProductsPage() {
       </Card>
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div>Página {page + 1} de {pageCount}</div>
+        <div className="flex items-center justify-between text-[13px] text-muted-foreground">
+          <div className="tabular-nums">Página {page + 1} de {pageCount}</div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
             <Button size="sm" variant="outline" disabled={page + 1 >= pageCount} onClick={() => setPage(page + 1)}>Próxima</Button>
           </div>
         </div>
       )}
+
+      {confirmDialog}
     </div>
   );
 }
@@ -202,9 +313,18 @@ function InvoiceLink({ number, path }: { number: string | null; path: string | n
   }
   return (
     <div className="flex items-center gap-1.5 text-xs">
-      <FileText className="size-3.5 text-muted-foreground" />
-      <span className="truncate max-w-[100px]">{number ?? "NF"}</span>
-      {path && <button type="button" onClick={open} className="text-primary hover:underline"><ExternalLink className="size-3" /></button>}
+      <FileText className="size-3.5 shrink-0 text-text-tertiary" strokeWidth={1.75} aria-hidden="true" />
+      <span className="max-w-[100px] truncate text-muted-foreground">{number ?? "NF"}</span>
+      {path && (
+        <button
+          type="button"
+          onClick={open}
+          aria-label="Abrir nota fiscal"
+          className="rounded-sm text-primary transition-opacity duration-150 hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ExternalLink className="size-3" strokeWidth={2} />
+        </button>
+      )}
     </div>
   );
 }
@@ -276,57 +396,49 @@ function ProductDialog({ editing, onClose }: { editing: Product | null; onClose:
       </DialogHeader>
       <form
         onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
-        className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
+        className="max-h-[70vh] space-y-4 overflow-y-auto pr-1"
       >
-        <div className="space-y-2">
-          <Label>Nome*</Label>
+        <Field label="Nome" required>
           <Input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-        </div>
+        </Field>
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Categoria</Label>
+          <Field label="Categoria">
             <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex.: Bebidas" />
-          </div>
-          <div className="space-y-2">
-            <Label>Estoque mínimo</Label>
+          </Field>
+          <Field label="Estoque mínimo">
             <Input type="number" min={0} value={minStock} onChange={(e) => setMinStock(Number(e.target.value))} />
-          </div>
+          </Field>
         </div>
         {!editing && (
-          <div className="space-y-2">
-            <Label>Quantidade inicial</Label>
+          <Field label="Quantidade inicial" hint="Para alterar o estoque depois, use Entradas/Saídas.">
             <Input type="number" min={0} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
-            <p className="text-xs text-muted-foreground">Para alterar o estoque depois, use Entradas/Saídas.</p>
-          </div>
+          </Field>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Preço de custo</Label>
+          <Field label="Preço de custo">
             <Input type="number" step="0.01" min={0} value={costPrice} onChange={(e) => setCostPrice(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Preço de venda</Label>
+          </Field>
+          <Field label="Preço de venda">
             <Input type="number" step="0.01" min={0} value={salePrice} onChange={(e) => setSalePrice(e.target.value)} />
-          </div>
+          </Field>
         </div>
 
-        <div className="rounded-md border border-border p-3 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Paperclip className="size-4 text-muted-foreground" />
-            Nota fiscal <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs">Número da NF</Label>
+        <fieldset className="space-y-3 rounded-lg border border-border-subtle bg-surface-sunken/50 p-3">
+          <legend className="flex items-center gap-1.5 px-1 text-[12px] font-medium text-foreground">
+            <Paperclip className="size-3.5 text-text-tertiary" strokeWidth={1.75} aria-hidden="true" />
+            Nota fiscal
+            <span className="font-normal text-text-tertiary">(opcional)</span>
+          </legend>
+          <Field label="Número da NF">
             <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Ex.: 000123456" />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs">Arquivo (PDF, imagem ou XML)</Label>
+          </Field>
+          <Field
+            label="Arquivo (PDF, imagem ou XML)"
+            hint={editing?.invoice_file_path && !invoiceFile ? "Arquivo já anexado. Envie um novo para substituir." : undefined}
+          >
             <Input type="file" accept=".pdf,.xml,image/*" onChange={(e) => setInvoiceFile(e.target.files?.[0] ?? null)} />
-            {editing?.invoice_file_path && !invoiceFile && (
-              <p className="text-xs text-muted-foreground">Arquivo já anexado. Envie um novo para substituir.</p>
-            )}
-          </div>
-        </div>
+          </Field>
+        </fieldset>
 
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
@@ -334,5 +446,29 @@ function ProductDialog({ editing, onClose }: { editing: Product | null; onClose:
         </DialogFooter>
       </form>
     </DialogContent>
+  );
+}
+
+/** Campo de formulário com rótulo, marcação de obrigatório e dica. */
+function Field({
+  label,
+  required,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[12px] font-medium text-muted-foreground">
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
+      {children}
+      {hint && <p className="text-[11px] leading-relaxed text-text-tertiary">{hint}</p>}
+    </div>
   );
 }

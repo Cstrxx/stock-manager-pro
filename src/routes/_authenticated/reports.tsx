@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/ui/page-header";
+import { Segmented } from "@/components/ui/segmented";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -111,24 +113,19 @@ function ReportsPage() {
   const deltaPct = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : (revenue > 0 ? 100 : 0);
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Vendas, movimentações e desempenho do estoque.</p>
-        </div>
-        <div className="flex flex-wrap gap-1 bg-muted/50 p-1 rounded-md">
-          {PERIODS.map((p) => (
-            <Button
-              key={p.key}
-              size="sm"
-              variant={period === p.key ? "default" : "ghost"}
-              className="h-7 px-3 text-xs"
-              onClick={() => setPeriod(p.key)}
-            >{p.label}</Button>
-          ))}
-        </div>
-      </header>
+    <div className="space-y-5">
+      <PageHeader
+        title="Relatórios"
+        subtitle="Vendas, movimentações e desempenho do estoque."
+        actions={
+          <Segmented
+            label="Período"
+            options={PERIODS}
+            value={period}
+            onChange={(k) => setPeriod(k as typeof period)}
+          />
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Summary

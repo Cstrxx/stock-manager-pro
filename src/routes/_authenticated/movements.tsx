@@ -10,8 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { useMemo, useState } from "react";
-import { ArrowDownToLine, ShoppingCart, Plus, Trash2, User, X } from "lucide-react";
+import { ArrowDownToLine, ShoppingCart, Plus, Trash2, User, X, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { getCompanyId, formatBRL, type Movement, type Product } from "@/lib/inventory";
 import { formatDoc, onlyDigits } from "@/lib/cpf-cnpj";
@@ -42,28 +46,24 @@ function MovementsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Movimentações</h1>
-          <p className="text-sm text-muted-foreground">Registre entradas (compras) e saídas (vendas).</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setOpenType("in")} variant="outline">
-            <ArrowDownToLine className="size-4" /> Entrada
-          </Button>
-          <Button
-            onClick={() => setOpenType("out")}
-            size="lg"
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-semibold shadow-lg shadow-destructive/20 ring-1 ring-destructive/40"
-          >
-            <ShoppingCart className="size-4" /> Registrar venda / saída
-          </Button>
-        </div>
-      </header>
+    <div className="space-y-5">
+      <PageHeader
+        title="Movimentações"
+        subtitle="Registre entradas (compras) e saídas (vendas)."
+        actions={
+          <>
+            <Button onClick={() => setOpenType("in")} variant="outline">
+              <ArrowDownToLine strokeWidth={1.75} /> Entrada
+            </Button>
+            <Button onClick={() => setOpenType("out")}>
+              <ShoppingCart strokeWidth={1.75} /> Registrar venda / saída
+            </Button>
+          </>
+        }
+      />
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="overflow-hidden rounded-xl p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -77,23 +77,34 @@ function MovementsPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">Carregando...</TableCell></TableRow>
+                <SkeletonRows rows={8} cols={6} />
               ) : movements.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">Nenhuma movimentação ainda.</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={6} className="h-auto border-0">
+                    <EmptyState
+                      icon={ArrowLeftRight}
+                      title="Nenhuma movimentação ainda"
+                      description="Toda entrada de compra e saída de venda fica registrada aqui, com histórico completo."
+                      action={
+                        <Button size="sm" onClick={() => setOpenType("out")}>
+                          <Plus strokeWidth={1.75} /> Registrar movimentação
+                        </Button>
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
               ) : movements.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">{new Date(m.created_at).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">{new Date(m.created_at).toLocaleString("pt-BR")}</TableCell>
                   <TableCell>
-                    {m.type === "in"
-                      ? <Badge className="bg-primary/15 text-primary border-primary/20">Entrada</Badge>
-                      : <Badge className="bg-destructive/15 text-destructive border-destructive/30">Saída</Badge>}
+                    <StatusBadge status={m.type === "in" ? "in" : "out"} />
                   </TableCell>
-                  <TableCell className="font-medium">{m.products?.name ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{m.type === "out" ? (m.customer_name || "Cliente") : "—"}</TableCell>
-                  <TableCell className={`text-right tabular-nums font-medium ${m.type === "in" ? "text-primary" : "text-destructive"}`}>
+                  <TableCell className="font-medium text-foreground">{m.products?.name ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.type === "out" ? (m.customer_name || "Cliente") : <span className="text-text-tertiary">—</span>}</TableCell>
+                  <TableCell className={`text-right font-semibold tabular-nums ${m.type === "in" ? "text-primary" : "text-foreground"}`}>
                     {m.type === "in" ? "+" : "−"}{m.quantity}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-sm">{m.total_amount != null ? formatBRL(Number(m.total_amount)) : "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{m.total_amount != null ? formatBRL(Number(m.total_amount)) : <span className="text-text-tertiary">—</span>}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

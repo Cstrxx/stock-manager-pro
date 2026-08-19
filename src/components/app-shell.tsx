@@ -1,52 +1,47 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Boxes, LayoutDashboard, Package, ArrowLeftRight, BellRing, BarChart3, CreditCard, LogOut, Sparkles, Users, Wallet, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { daysLeft, TRIAL_WARN_DAYS, type Company } from "@/lib/inventory";
+import { daysLeft, stockStatus, TRIAL_WARN_DAYS, type Product } from "@/lib/inventory";
+import { useCompanyQuery, useProfileQuery } from "@/lib/queries";
 import { useEffect, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { setTrialLocked, TRIAL_BLOCKED_EVENT, TRIAL_BLOCKED_MESSAGE } from "@/lib/trial-lock";
+import { AppSidebar } from "@/components/app-sidebar";
+import { AppHeader } from "@/components/app-header";
+import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 
-const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/products", label: "Produtos", icon: Package },
-  { to: "/partners", label: "Clientes & Fornec.", icon: Users },
-  { to: "/movements", label: "Movimentações", icon: ArrowLeftRight },
-  { to: "/alerts", label: "Alertas", icon: BellRing },
-  { to: "/reports", label: "Relatórios", icon: BarChart3 },
-  { to: "/faturamento", label: "Faturamento", icon: Wallet },
-  { to: "/billing", label: "Plano", icon: CreditCard },
-] as const;
+/**
+ * Conta produtos que precisam de atenção lendo **apenas o cache** do React
+ * Query. Reage a mudanças do cache, mas nunca dispara requisição — o
+ * contador de alertas não adiciona carga de rede à aplicação.
+ */
+function useAlertCount() {
+  const qc = useQueryClient();
+  const [count, setCount] = useState(0);
 
+  useEffect(() => {
+    const read = () => {
+      const products = qc.getQueryData<Product[]>(["products"]);
+      if (!products) return setCount(0);
+      setCount(products.filter((p) => stockStatus(p) !== "ok").length);
+    };
+    read();
+    return qc.getQueryCache().subscribe(read);
+  }, [qc]);
+
+  return count;
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const { data: company } = useQuery({
-    queryKey: ["company"],
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("companies")
-        .select("id, name, plan, trial_ends_at, subscription_status")
-        .maybeSingle();
-      return data as Company | null;
-    },
-  });
-
-  const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return null;
-      const { data } = await supabase.from("profiles").select("full_name, email").eq("id", u.user.id).maybeSingle();
-      return data;
-    },
-  });
+  const { data: company } = useCompanyQuery();
+  const { data: profile } = useProfileQuery();
 
   async function signOut() {
     await qc.cancelQueries();
@@ -70,83 +65,62 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(TRIAL_BLOCKED_EVENT, onBlocked);
   }, []);
 
+  const alertCount = useAlertCount();
+  const { open: searchOpen, setOpen: setSearchOpen } = useCommandPalette();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Fecha a navegação mobile ao trocar de rota.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  const sidebarProps = {
+    companyName: company?.name,
+    userName: profile?.full_name,
+    userEmail: profile?.email,
+    pathname,
+    trialing,
+    trialDays,
+    alertCount,
+    onSignOut: signOut,
+  };
+
   return (
-    <div className="min-h-screen flex bg-background">
-      <aside className="hidden md:flex w-64 flex-col bg-sidebar border-r border-sidebar-border">
-        <div className="px-5 py-5 flex items-center gap-2">
-          <div className="size-8 rounded-md grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
-            <Boxes className="size-4 text-primary-foreground" />
-          </div>
-          <div>
-            <div className="font-semibold tracking-tight leading-none">Estoq</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{company?.name ?? "—"}</div>
-          </div>
-        </div>
-        <nav className="px-3 flex-1 space-y-1">
-          {nav.map(({ to, label, icon: Icon }) => {
-            const active = pathname === to || pathname.startsWith(to + "/");
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                }`}
-              >
-                <Icon className="size-4" /> {label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-3 border-t border-sidebar-border space-y-2">
-          {trialing && (
-            <Link to="/billing" className="block rounded-md border border-primary/30 bg-primary/5 px-3 py-2 hover:bg-primary/10 transition-colors">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
-                <Sparkles className="size-3.5" /> Período de teste
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">
-                {trialDays > 0 ? `${trialDays} dia${trialDays === 1 ? "" : "s"} restante${trialDays === 1 ? "" : "s"}` : "Expira hoje"}
-              </div>
-            </Link>
-          )}
-          <div className="px-2 py-1">
-            <div className="text-sm font-medium truncate">{profile?.full_name ?? "Usuário"}</div>
-            <div className="text-xs text-muted-foreground truncate">{profile?.email}</div>
-          </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
-            <LogOut className="size-4" /> Sair
-          </Button>
+    <div className="flex min-h-screen bg-background">
+      {/* --- Sidebar desktop -------------------------------------------- */}
+      <aside className="hidden w-60 shrink-0 border-r border-sidebar-border md:block">
+        <div className="sticky top-0 h-screen">
+          <AppSidebar {...sidebarProps} />
         </div>
       </aside>
-      <main className="flex-1 min-w-0 flex flex-col">
-        <div className="md:hidden border-b border-border px-4 py-3 flex items-center justify-between bg-sidebar">
-          <div className="flex items-center gap-2">
-            <div className="size-7 rounded grid place-items-center" style={{ background: "var(--gradient-primary)" }}>
-              <Boxes className="size-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold">Estoq</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="size-4" /></Button>
-        </div>
-        <div className="md:hidden border-b border-border bg-sidebar overflow-x-auto">
-          <div className="flex gap-1 px-2 py-2">
-            {nav.map(({ to, label, icon: Icon }) => {
-              const active = pathname === to;
-              return (
-                <Link key={to} to={to} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs whitespace-nowrap ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground"}`}>
-                  <Icon className="size-3.5" /> {label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+
+      {/* --- Navegação mobile: drawer próprio, não barra de chips -------- */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-[264px] border-sidebar-border bg-sidebar p-0">
+          <SheetTitle className="sr-only">Navegação</SheetTitle>
+          <AppSidebar {...sidebarProps} onNavigate={() => setMobileNavOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppHeader
+          pathname={pathname}
+          userName={profile?.full_name}
+          userEmail={profile?.email}
+          alertCount={alertCount}
+          onOpenSearch={() => setSearchOpen(true)}
+          onOpenMenu={() => setMobileNavOpen(true)}
+          onSignOut={signOut}
+        />
+
+        {/* --- Avisos de trial (regra de negócio inalterada) ------------- */}
         {trialExpired && (
-          <div className="sticky top-0 z-30 bg-destructive/15 border-b border-destructive/40 px-4 py-2.5 text-sm flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-4" />
-              <span className="font-medium">Seu período de teste terminou. Você pode consultar seus dados, mas novas alterações estão bloqueadas.</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/[0.08] px-4 py-2.5 sm:px-6">
+            <div className="flex items-start gap-2 text-[13px] text-destructive">
+              <AlertTriangle className="mt-px size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+              <span className="font-medium">
+                Seu período de teste terminou. Você pode consultar seus dados, mas novas alterações estão bloqueadas.
+              </span>
             </div>
             <Button size="sm" asChild>
               <Link to="/billing">Fazer upgrade</Link>
@@ -154,24 +128,37 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
         {trialing && !trialExpired && trialDays <= TRIAL_WARN_DAYS && (
-          <div className="bg-warning/15 border-b border-warning/30 px-4 py-2.5 text-sm text-warning-foreground flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-warning">
-              <AlertTriangle className="size-4" />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/25 bg-warning/[0.07] px-4 py-2.5 sm:px-6">
+            <div className="flex items-start gap-2 text-[13px] text-warning">
+              <AlertTriangle className="mt-px size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
               <span className="font-medium">
                 {trialDays === 0 ? "Seu teste grátis acaba hoje." : `Faltam apenas ${trialDays} dia${trialDays === 1 ? "" : "s"} do seu teste grátis.`}
               </span>
             </div>
-            <Link to="/billing" className="text-xs font-medium underline text-warning hover:opacity-80">
+            <Link
+              to="/billing"
+              className="text-[12px] font-medium text-warning underline underline-offset-4 transition-opacity duration-150 hover:opacity-80"
+            >
               Fazer upgrade agora →
             </Link>
           </div>
         )}
         {trialing && !trialExpired && trialDays > TRIAL_WARN_DAYS && (
-          <div className="md:hidden bg-primary/10 border-b border-primary/20 px-4 py-2 text-xs text-primary flex items-center gap-1.5">
-            <Sparkles className="size-3.5" /> Teste grátis · {trialDays} dia{trialDays === 1 ? "" : "s"} · <Link to="/billing" className="underline">ver plano</Link>
+          <div className="flex items-center gap-1.5 border-b border-border-subtle bg-card/40 px-4 py-2 text-[12px] text-muted-foreground md:hidden">
+            <Sparkles className="size-3.5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden="true" />
+            Teste grátis · {trialDays} dia{trialDays === 1 ? "" : "s"} ·{" "}
+            <Link to="/billing" className="font-medium text-foreground underline underline-offset-4">
+              ver plano
+            </Link>
           </div>
         )}
-        <div className="flex-1 p-6 lg:p-8 max-w-[1400px] w-full mx-auto">{children}</div>
+
+        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
+
+        <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+
         <Dialog open={blockedOpen} onOpenChange={setBlockedOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -188,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </main>
+      </div>
     </div>
   );
 }

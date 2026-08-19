@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/ui/page-header";
+import { Segmented } from "@/components/ui/segmented";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -171,33 +173,30 @@ function FaturamentoPage() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="space-y-6">
-        <header className="flex items-end justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-              <Wallet className="size-6 text-primary" /> Faturamento
-            </h1>
-            <p className="text-sm text-muted-foreground">Período: <span className="font-medium text-foreground">{periodLabel}</span></p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex flex-wrap gap-1 bg-muted/50 p-1 rounded-md">
-              {RANGES.map((r) => (
-                <Button
-                  key={r.key}
-                  size="sm"
-                  variant={range === r.key ? "default" : "ghost"}
-                  className="h-7 px-3 text-xs"
-                  onClick={() => setRange(r.key)}
-                >{r.label}</Button>
-              ))}
-            </div>
-            <Button size="sm" variant="outline" onClick={exportCsv}>
-              <Download className="size-3.5" /> Exportar CSV
-            </Button>
-          </div>
-        </header>
+      <div className="space-y-5">
+        <PageHeader
+          title="Faturamento"
+          subtitle={
+            <>
+              Período: <span className="font-medium text-foreground">{periodLabel}</span>
+            </>
+          }
+          actions={
+            <>
+              <Segmented
+                label="Período"
+                options={RANGES}
+                value={range}
+                onChange={(k) => setRange(k as typeof range)}
+              />
+              <Button size="sm" variant="outline" onClick={exportCsv}>
+                <Download strokeWidth={1.75} /> Exportar CSV
+              </Button>
+            </>
+          }
+        />
 
-        <Card className="border-primary/30" style={{ boxShadow: "var(--shadow-glow)" }}>
+        <Card className="border-primary/25">
           <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">

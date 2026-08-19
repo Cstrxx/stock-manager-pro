@@ -1,20 +1,35 @@
 @import "tailwindcss" source(none);
+@import "@fontsource-variable/inter/wght.css";
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================================================================
+   ESTOQ — Design System
+   Identidade: "instrumento de precisão".
+   Base neutra fria de família única · verde exclusivamente como sinal ·
+   superfícies definidas por hairline de 1px, nunca por elevação flutuante.
+   ========================================================================== */
+
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* --- Raio: escala, não valor único ------------------------------------ */
+  --radius-sm: 6px;   /* badges, dots, chips            */
+  --radius-md: 8px;   /* botões, inputs, células        */
+  --radius-lg: 10px;  /* controles compostos            */
+  --radius-xl: 16px;  /* cards                          */
+  --radius-2xl: 20px; /* modais, painéis                */
+
+  /* --- Superfícies ------------------------------------------------------ */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface-sunken: var(--surface-sunken);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
+  /* --- Sinais ----------------------------------------------------------- */
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -29,10 +44,19 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* --- Bordas e texto --------------------------------------------------- */
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --color-text-tertiary: var(--text-tertiary);
+
+  /* --- Sidebar ---------------------------------------------------------- */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -41,65 +65,294 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* --- Data viz --------------------------------------------------------- */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Tipografia ------------------------------------------------------- */
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
 }
 
-/* Dark Professional — operational dashboard */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.16 0.015 250);
-  --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.20 0.018 250);
-  --card-foreground: oklch(0.96 0.005 250);
-  --popover: oklch(0.21 0.018 250);
-  --popover-foreground: oklch(0.96 0.005 250);
-  --primary: oklch(0.72 0.17 155);
-  --primary-foreground: oklch(0.16 0.02 160);
-  --secondary: oklch(0.26 0.018 250);
-  --secondary-foreground: oklch(0.96 0.005 250);
-  --muted: oklch(0.24 0.015 250);
-  --muted-foreground: oklch(0.68 0.015 250);
-  --accent: oklch(0.30 0.04 160);
-  --accent-foreground: oklch(0.96 0.005 250);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 250);
-  --success: oklch(0.72 0.17 155);
-  --success-foreground: oklch(0.16 0.02 160);
-  --warning: oklch(0.78 0.15 75);
-  --warning-foreground: oklch(0.20 0.04 75);
-  --border: oklch(0.28 0.015 250);
-  --input: oklch(0.26 0.015 250);
-  --ring: oklch(0.72 0.17 155);
-  --sidebar: oklch(0.13 0.015 250);
-  --sidebar-foreground: oklch(0.92 0.005 250);
-  --sidebar-primary: oklch(0.72 0.17 155);
-  --sidebar-primary-foreground: oklch(0.16 0.02 160);
-  --sidebar-accent: oklch(0.22 0.018 250);
-  --sidebar-accent-foreground: oklch(0.96 0.005 250);
-  --sidebar-border: oklch(0.22 0.015 250);
-  --sidebar-ring: oklch(0.72 0.17 155);
-  --chart-1: oklch(0.72 0.17 155);
-  --chart-2: oklch(0.65 0.16 220);
-  --chart-3: oklch(0.78 0.15 75);
-  --chart-4: oklch(0.62 0.22 25);
-  --chart-5: oklch(0.70 0.14 300);
+  /* ======================================================================
+     COR — rampa neutra harmonizada (hue 250, croma baixo, família única).
+     Degraus curtos: o card fica ~1 passo acima do fundo. A separação vem
+     da borda hairline, não do contraste de superfície.
+     ====================================================================== */
 
-  --gradient-primary: linear-gradient(135deg, oklch(0.72 0.17 155), oklch(0.62 0.15 175));
-  --shadow-card: 0 1px 0 oklch(1 0 0 / 4%) inset, 0 8px 24px -12px oklch(0 0 0 / 50%);
-  --shadow-glow: 0 0 0 1px oklch(0.72 0.17 155 / 25%), 0 12px 32px -16px oklch(0.72 0.17 155 / 40%);
+  --surface-sunken: oklch(0.122 0.007 250); /* header de tabela, insets      */
+  --background:     oklch(0.145 0.007 250); /* fundo da aplicação            */
+  --card:           oklch(0.178 0.008 250); /* superfície elevada            */
+  --popover:        oklch(0.205 0.009 250); /* overlay acima de tudo         */
+
+  --foreground:         oklch(0.975 0.003 250); /* texto primário            */
+  --muted-foreground:   oklch(0.715 0.013 250); /* texto secundário          */
+  --text-tertiary:      oklch(0.565 0.013 250); /* legendas, metadados       */
+
+  --card-foreground:    var(--foreground);
+  --popover-foreground: var(--foreground);
+
+  --secondary:            oklch(0.225 0.009 250);
+  --secondary-foreground: var(--foreground);
+  --muted:                oklch(0.205 0.008 250);
+  --accent:               oklch(0.235 0.009 250); /* neutro — não mais verde */
+  --accent-foreground:    var(--foreground);
+
+  /* --- Bordas: três pesos, todas discretas ----------------------------- */
+  --border-subtle: oklch(0.235 0.008 250); /* divisores internos            */
+  --border:        oklch(0.268 0.009 250); /* contorno padrão               */
+  --border-strong: oklch(0.335 0.010 250); /* hover, foco de controle       */
+  --input:         oklch(0.268 0.009 250);
+
+  /* ======================================================================
+     SINAL — o verde tem exatamente três funções: sucesso, confirmação e
+     ação primária. Nada mais na interface é verde.
+     ====================================================================== */
+  --primary:              oklch(0.745 0.185 150);
+  --primary-foreground:   oklch(0.145 0.030 150);
+  --success:              oklch(0.745 0.185 150);
+  --success-foreground:   oklch(0.145 0.030 150);
+  --warning:              oklch(0.795 0.145 78);
+  --warning-foreground:   oklch(0.180 0.040 78);
+  --destructive:          oklch(0.645 0.205 25);
+  --destructive-foreground: oklch(0.980 0.010 25);
+  --info:                 oklch(0.660 0.135 240);
+  --info-foreground:      oklch(0.145 0.030 240);
+
+  --ring: oklch(0.745 0.185 150);
+
+  /* --- Sidebar: um degrau abaixo do fundo ------------------------------ */
+  --sidebar:                    oklch(0.128 0.007 250);
+  --sidebar-foreground:         oklch(0.930 0.005 250);
+  --sidebar-primary:            var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent:             oklch(0.198 0.008 250);
+  --sidebar-accent-foreground:  var(--foreground);
+  --sidebar-border:             oklch(0.205 0.008 250);
+  --sidebar-ring:               var(--ring);
+
+  /* --- Data viz: verde lidera, resto neutro-cromático ------------------ */
+  --chart-1: oklch(0.745 0.185 150);
+  --chart-2: oklch(0.660 0.135 240);
+  --chart-3: oklch(0.795 0.145 78);
+  --chart-4: oklch(0.680 0.140 300);
+  --chart-5: oklch(0.600 0.020 250);
+
+  /* ======================================================================
+     ELEVAÇÃO — hairline primeiro. Sem card flutuante, sem glow.
+     ====================================================================== */
+  --shadow-card:    0 1px 2px oklch(0 0 0 / 30%);
+  --shadow-raised:  0 2px 8px -2px oklch(0 0 0 / 40%);
+  --shadow-overlay: 0 16px 48px -16px oklch(0 0 0 / 72%), 0 0 0 1px oklch(1 0 0 / 4%);
+  /* Compat: telas ainda não migradas. Contido, sem neon. */
+  --shadow-glow:      0 0 0 1px oklch(0.745 0.185 150 / 18%);
+  --gradient-primary: linear-gradient(160deg, oklch(0.745 0.185 150), oklch(0.660 0.150 165));
+
+  /* ======================================================================
+     TIPOGRAFIA — escala fixa. Números são o herói do produto.
+     ====================================================================== */
+  --text-display:   2rem;     /* 32px · 600 · título de página          */
+  --text-subtitle:  1rem;     /* 16px · 400 · subtítulo                 */
+  --text-card:      1.125rem; /* 18px · 600 · título de card            */
+  --text-body:      0.875rem; /* 14px · 400 · corpo                     */
+  --text-caption:   0.75rem;  /* 12px · 500 · legenda                   */
+  --text-metric:    2.25rem;  /* 36px · 700 · número de destaque        */
+  --text-metric-sm: 1.75rem;  /* 28px · 700 · número em card compacto   */
+
+  --tracking-display: -0.022em;
+  --tracking-metric:  -0.03em;
+  --tracking-caption: 0.02em;
+
+  /* ======================================================================
+     ESPAÇAMENTO — base 4px. Densidade compacta (ERP).
+     ====================================================================== */
+  --space-page-x:   1.5rem; /* 24px · gutter horizontal da página       */
+  --space-page-y:   1.5rem; /* 24px · gutter vertical                   */
+  --space-section:  1.5rem; /* 24px · entre blocos de conteúdo          */
+  --space-card:     1.25rem;/* 20px · padding interno de card           */
+  --space-cell-x:   0.75rem;/* 12px · padding horizontal de célula      */
+  --row-height:     2.75rem;/* 44px · altura de linha de tabela         */
+  --control-height: 2.25rem;/* 36px · altura de botão/input padrão      */
+  --sidebar-width:  15rem;  /* 240px                                    */
+  --header-height:  3.5rem; /* 56px                                     */
+
+  /* ======================================================================
+     MOTION — só transform e opacity. 150–220ms. Sem bounce, sem spring.
+     ====================================================================== */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-base: 180ms;
+  --duration-slow: 220ms;
 }
 
 .dark {
-  /* same palette — app is dark by default */
+  /* A aplicação é dark por definição — a paleta acima já é a final. */
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); }
-  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    background-color: var(--color-background);
+    /* Evita salto de layout quando a barra de rolagem aparece. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* cv11 desambigua o "1"; ss01 melhora o "a". Essencial em dados. */
+    font-feature-settings: "cv11", "ss01";
+    font-variant-ligatures: contextual;
+  }
+
+  /* Números são o herói: sempre tabulares e alinhados em colunas. */
+  .tabular-nums,
+  [data-metric],
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "cv11";
+  }
+
+  /* Foco visível e consistente em toda a aplicação. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Barras de rolagem discretas, no tom da interface. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::selection {
+    background: oklch(0.745 0.185 150 / 22%);
+  }
+}
+
+@layer components {
+  /* Entrada de página: fade + deslocamento mínimo. Nunca chamativo. */
+  .animate-enter {
+    animation: estoq-enter var(--duration-slow) var(--ease-out) both;
+  }
+
+  /* Stagger para listas e grids de KPI. */
+  .animate-enter-stagger > * {
+    animation: estoq-enter var(--duration-slow) var(--ease-out) both;
+  }
+  .animate-enter-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .animate-enter-stagger > *:nth-child(2) { animation-delay: 30ms; }
+  .animate-enter-stagger > *:nth-child(3) { animation-delay: 60ms; }
+  .animate-enter-stagger > *:nth-child(4) { animation-delay: 90ms; }
+  .animate-enter-stagger > *:nth-child(5) { animation-delay: 120ms; }
+  .animate-enter-stagger > *:nth-child(6) { animation-delay: 150ms; }
+
+  /* Hairline: o separador padrão do sistema. */
+  .hairline {
+    border-color: var(--border-subtle);
+  }
+}
+
+/* Traço de gráfico desenhado progressivamente (prévias da tela de acesso). */
+@keyframes estoq-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes estoq-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ==========================================================================
+   Encenação da tela de acesso (`auth-stage.tsx`).
+   Movimento restrito a transform e opacity — a mesma regra do resto do
+   sistema. Tudo aqui é pausado pelo bloco de redução de movimento abaixo.
+   ========================================================================== */
+
+/* Coluna de gráfico crescendo a partir da base. */
+@keyframes estoq-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* Barra preenchendo da esquerda para a direita. */
+@keyframes estoq-widen {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Progresso do capítulo em exibição. */
+@keyframes estoq-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Cursor do assistente enquanto a pergunta é digitada. */
+@keyframes estoq-caret {
+  0%, 45%   { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+
+/* Notificação entrando pela direita, sem salto. */
+@keyframes estoq-toast-in {
+  from {
+    opacity: 0;
+    transform: translate3d(8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ==========================================================================
+   Acessibilidade — respeitar redução de movimento em toda a aplicação.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
